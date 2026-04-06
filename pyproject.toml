@@ -28,6 +28,8 @@ dev = [
   "hypothesis>=6.112,<7.0",
   "ruff>=0.6.0,<1.0",
   "mypy>=1.11,<2.0",
+  "pre-commit>=3.8,<4.0",
+  "pip-audit>=2.7,<3.0",
 ]
 
 [project.scripts]

@@ -20,6 +20,7 @@ htmlcov/
 .mypy_cache/
 .ruff_cache/
 .hypothesis/
+.pre-commit-cache/
 
 # Virtual environments
 .venv/

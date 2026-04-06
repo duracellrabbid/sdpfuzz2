@@ -1,0 +1,18 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  - repo: local
+    hooks:
+      - id: dependency-vulnerability-scan
+        name: Dependency vulnerability scan (high/critical)
+        entry: python scripts/check_dependency_vulns.py
+        language: python
+        additional_dependencies:
+          - pip-audit>=2.7,<3.0
+        pass_filenames: false
+        stages: [commit, push]

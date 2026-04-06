@@ -15,6 +15,25 @@ mypy .
 pytest
 ```
 
+## Dependency scanning workflow
+
+Install pre-commit hooks:
+
+```powershell
+pre-commit install --hook-type pre-commit --hook-type pre-push
+```
+
+Run dependency scan manually:
+
+```powershell
+python scripts/check_dependency_vulns.py
+```
+
+Behavior:
+- A dependency vulnerability scan runs on both commit and push.
+- Commits/pushes are blocked on high/critical findings.
+- Findings without severity metadata are treated as blocking (fail-closed).
+
 ## Current status
 
 Phase 0 scaffolding is in place:
