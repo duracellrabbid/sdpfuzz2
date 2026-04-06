@@ -28,3 +28,5 @@ env/
 
 # VS Code
 .vscode/
+project-requirement.md
+implementation-plan.md
