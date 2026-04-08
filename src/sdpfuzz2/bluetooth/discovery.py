@@ -1,10 +1,11 @@
 """Bluetooth discovery abstraction."""
 
 import asyncio
+import importlib
 import platform
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol
 
 from sdpfuzz2.domain.models import Device
 
@@ -101,30 +102,33 @@ class DBusNextBlueZClient:
     async def _scan_managed_objects_async(
         self, timeout_seconds: float
     ) -> dict[str, dict[str, dict[str, object]]]:  # pragma: no cover
-        from dbus_next import BusType  # type: ignore[import-not-found]
-        from dbus_next.aio import MessageBus  # type: ignore[import-not-found]
+        dbus_next: Any = importlib.import_module("dbus_next")
+        dbus_next_aio: Any = importlib.import_module("dbus_next.aio")
 
-        bus = MessageBus(bus_type=BusType.SYSTEM)
+        bus_type: Any = dbus_next.BusType
+        message_bus_ctor: Any = dbus_next_aio.MessageBus
+
+        bus: Any = message_bus_ctor(bus_type=bus_type.SYSTEM)
         await bus.connect()
 
         bluez_root = "/"
         bluez_service = "org.bluez"
 
         root_introspection = await bus.introspect(bluez_service, bluez_root)
-        root_object = bus.get_proxy_object(bluez_service, bluez_root, root_introspection)
-        object_manager = root_object.get_interface("org.freedesktop.DBus.ObjectManager")
+        root_object: Any = bus.get_proxy_object(bluez_service, bluez_root, root_introspection)
+        object_manager: Any = root_object.get_interface("org.freedesktop.DBus.ObjectManager")
 
         before_scan = await object_manager.call_get_managed_objects()
         adapter_path = self._find_adapter_path(before_scan)
 
         if adapter_path is not None:
             adapter_introspection = await bus.introspect(bluez_service, adapter_path)
-            adapter_object = bus.get_proxy_object(
+            adapter_object: Any = bus.get_proxy_object(
                 bluez_service,
                 adapter_path,
                 adapter_introspection,
             )
-            adapter = adapter_object.get_interface(BLUEZ_ADAPTER_INTERFACE)
+            adapter: Any = adapter_object.get_interface(BLUEZ_ADAPTER_INTERFACE)
 
             await adapter.call_start_discovery()
             await asyncio.sleep(max(0.0, timeout_seconds))
