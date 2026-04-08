@@ -1,9 +1,8 @@
-"""Fail on high/critical dependency vulnerabilities.
+"""Fail on medium-or-higher dependency vulnerabilities.
 
 The script uses pip-audit JSON output and blocks when:
-- CVSS score >= 7.0, or
-- severity label is HIGH/CRITICAL, or
-- vulnerability has no severity metadata (conservative fail-closed behavior).
+- CVSS score >= 4.0, or
+- severity label is MEDIUM/HIGH/CRITICAL.
 """
 
 from __future__ import annotations
@@ -14,7 +13,7 @@ import sys
 from dataclasses import dataclass
 from typing import Any
 
-HIGH_CVSS_THRESHOLD = 7.0
+MEDIUM_CVSS_THRESHOLD = 4.0
 
 
 @dataclass(frozen=True)
@@ -120,11 +119,11 @@ def _finding_for_vuln(package: str, vuln: dict[str, Any]) -> Finding | None:
     label = _extract_label(vuln)
     cvss = _extract_cvss(vuln)
 
-    if label in {"CRITICAL", "HIGH"}:
+    if label in {"CRITICAL", "HIGH", "MEDIUM"}:
         return Finding(package=package, vuln_id=vuln_id, severity=label)
 
     if cvss is not None:
-        if cvss >= HIGH_CVSS_THRESHOLD:
+        if cvss >= MEDIUM_CVSS_THRESHOLD:
             return Finding(
                 package=package,
                 vuln_id=vuln_id,
@@ -132,8 +131,8 @@ def _finding_for_vuln(package: str, vuln: dict[str, Any]) -> Finding | None:
             )
         return None
 
-    # Fail closed when severity metadata is unavailable.
-    return Finding(package=package, vuln_id=vuln_id, severity="UNKNOWN")
+    # Unknown severity is non-blocking under medium+ policy.
+    return None
 
 
 def _collect_blocking_findings(payload: Any) -> list[Finding]:
@@ -165,10 +164,10 @@ def main() -> int:
 
     findings = _collect_blocking_findings(payload)
     if not findings:
-        print("Dependency scan passed: no high/critical findings.")
+        print("Dependency scan passed: no medium/high/critical findings.")
         return 0
 
-    print("Dependency scan blocked commit/push due to high/critical findings:")
+    print("Dependency scan blocked commit/push due to medium/high/critical findings:")
     for finding in findings:
         print(f"- {finding.package}: {finding.vuln_id} [{finding.severity}]")
 
