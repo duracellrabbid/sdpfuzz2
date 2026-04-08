@@ -43,7 +43,7 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"
-addopts = "-ra --strict-markers --strict-config --cov=sdpfuzz2 --cov-report=term-missing --cov-fail-under=90"
+addopts = "-ra --strict-markers --strict-config --cov=src/sdpfuzz2 --cov-report=term-missing --cov-fail-under=90"
 testpaths = ["tests"]
 markers = [
   "integration: marks tests requiring Linux/Kali runtime dependencies",

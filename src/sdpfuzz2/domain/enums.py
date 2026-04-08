@@ -1,9 +1,9 @@
 """Enums used across fuzzing orchestration."""
 
-from enum import Enum
+from enum import StrEnum
 
 
-class FuzzMode(str, Enum):
+class FuzzMode(StrEnum):
     """Available fuzzing strategy names."""
 
     TOTALLY_RANDOM_BYTES = "totally_random_bytes"

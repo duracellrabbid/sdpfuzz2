@@ -1,7 +1,7 @@
 """Core domain models for run logging and target metadata."""
 
-from dataclasses import asdict, dataclass
 import re
+from dataclasses import asdict, dataclass
 
 MAC_ADDRESS_PATTERN = re.compile(r"^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$")
 

@@ -1,3 +1,5 @@
+from typing import Any, cast
+
 from sdpfuzz2.domain.models import Device, PacketLogEntry, RunLog
 
 
@@ -30,6 +32,6 @@ def test_run_log_supports_required_schema_fields() -> None:
         ],
     )
 
-    dumped = run_log.to_dict()
+    dumped = cast(dict[str, Any], run_log.to_dict())
     assert dumped["device_name"] == "Device"
     assert dumped["logs"][0]["crash"] == 0
