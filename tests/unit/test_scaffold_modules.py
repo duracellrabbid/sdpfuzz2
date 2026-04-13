@@ -31,6 +31,28 @@ class _NoopTransport:
         return b"\x07\x00\x01\x00\x03\x00\x00\x00"
 
 
+class _SocketStub:
+    def __init__(self) -> None:
+        self.connected_to: tuple[str, int] | None = None
+        self.timeout: float | None = None
+
+    def connect(self, addr: tuple[str, int]) -> None:
+        self.connected_to = addr
+
+    def send(self, payload: bytes) -> int:
+        return len(payload)
+
+    def recv(self, recv_size: int) -> bytes:
+        del recv_size
+        return b"\x07\x00\x01\x00\x03\x00\x00\x00"
+
+    def settimeout(self, timeout: float) -> None:
+        self.timeout = timeout
+
+    def close(self) -> None:
+        return None
+
+
 def test_placeholder_components_behave_as_scaffolded() -> None:
     assert CrashDetector().should_stop() is False
 
@@ -38,11 +60,13 @@ def test_placeholder_components_behave_as_scaffolded() -> None:
     assert result.attribute_list_fragments == [b""]
     assert result.continuation_states == []
 
-    l2cap = L2CAPTransport()
-    with pytest.raises(NotImplementedError):
-        l2cap.send(b"payload")
-    with pytest.raises(NotImplementedError):
-        l2cap.receive(timeout_ms=100)
+    socket_stub = _SocketStub()
+    l2cap = L2CAPTransport(
+        target_mac="00:11:22:33:44:55",
+        socket_factory=lambda: socket_stub,
+    )
+    l2cap.send(b"payload")
+    assert l2cap.receive(timeout_ms=100).startswith(b"\x07")
 
     with pytest.raises(NotImplementedError):
         TotallyRandomBytesStrategy().next_packet()

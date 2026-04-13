@@ -44,7 +44,7 @@ Probe the selected target to collect valid SDP response pages and continuation s
 sdpfuzz2 probe --index 1 --response-timeout-ms 1500
 ```
 
-Note: the CLI probe command is integrated with the `SDPProbe` flow. Runtime probing over real L2CAP sockets depends on the concrete transport implementation for your Kali/Linux environment.
+The CLI `probe` command is integrated with `SDPProbe` and uses the Linux L2CAP transport implementation to connect to the selected target MAC over SDP PSM (`0x0001`).
 
 Run the test suite:
 
@@ -107,6 +107,7 @@ Phase 2 valid SDP probing is now implemented:
 - Strict Service Search Attribute response parser in `sdpfuzz2.sdp.parser`
 - Continuation-state pagination loop in `sdpfuzz2.bluetooth.probe.SDPProbe`
 - CLI integration via `sdpfuzz2 probe` for selected targets
+- Linux L2CAP transport implementation in `sdpfuzz2.bluetooth.l2cap_transport`
 - Unit tests covering byte fixtures, parser error cases, and multi-page continuation-state collection
 
 Earlier scaffolding is also in place:

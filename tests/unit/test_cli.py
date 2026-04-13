@@ -4,6 +4,7 @@ from typer.testing import CliRunner
 
 from sdpfuzz2.cli import app, select_target_device
 from sdpfuzz2.bluetooth.probe import ProbeResult
+from sdpfuzz2.domain.errors import TransportError
 from sdpfuzz2.domain.models import Device
 
 
@@ -115,7 +116,7 @@ def test_probe_command_uses_selected_target_and_prints_summary(
     assert "Combined attribute payload bytes: 5" in result.stdout
 
 
-def test_probe_command_returns_non_zero_when_transport_not_implemented(
+def test_probe_command_returns_non_zero_when_transport_fails(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     runner = CliRunner()
@@ -127,7 +128,7 @@ def test_probe_command_returns_non_zero_when_transport_not_implemented(
     def fake_probe_selected_target(target: Device, response_timeout_ms: int) -> ProbeResult:
         del target
         del response_timeout_ms
-        raise NotImplementedError("L2CAP socket setup pending")
+        raise TransportError("connect failed")
 
     monkeypatch.setattr("sdpfuzz2.cli.DiscoveryService.discover", fake_discover)
     monkeypatch.setattr("sdpfuzz2.cli._probe_selected_target", fake_probe_selected_target)
@@ -135,4 +136,4 @@ def test_probe_command_returns_non_zero_when_transport_not_implemented(
     result = runner.invoke(app, ["probe", "--index", "1"])
 
     assert result.exit_code == 1
-    assert "Probe transport is not implemented yet: L2CAP socket setup pending" in result.stdout
+    assert "Probe transport failed: connect failed" in result.stdout

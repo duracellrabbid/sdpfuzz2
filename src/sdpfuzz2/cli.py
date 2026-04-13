@@ -7,6 +7,7 @@ import typer
 from sdpfuzz2.bluetooth.l2cap_transport import L2CAPTransport
 from sdpfuzz2.bluetooth.probe import ProbeResult, SDPProbe
 from sdpfuzz2.bluetooth.discovery import DiscoveryService
+from sdpfuzz2.domain.errors import TransportError
 from sdpfuzz2.domain.models import Device
 
 app = typer.Typer(help="Bluetooth SDP fuzzing toolkit")
@@ -45,8 +46,10 @@ def _discover_and_select_target(index: int | None) -> Device:
 
 
 def _probe_selected_target(target: Device, response_timeout_ms: int) -> ProbeResult:
-    del target
-    probe = SDPProbe(transport=L2CAPTransport(), response_timeout_ms=response_timeout_ms)
+    probe = SDPProbe(
+        transport=L2CAPTransport(target_mac=target.mac_address),
+        response_timeout_ms=response_timeout_ms,
+    )
     return probe.collect_initial_state()
 
 
@@ -83,8 +86,8 @@ def probe_target(
 
     try:
         result = _probe_selected_target(target, response_timeout_ms=response_timeout_ms)
-    except NotImplementedError as exc:
-        typer.echo(f"Probe transport is not implemented yet: {exc}")
+    except TransportError as exc:
+        typer.echo(f"Probe transport failed: {exc}")
         raise typer.Exit(code=1) from exc
 
     typer.echo("SDP probe completed")
