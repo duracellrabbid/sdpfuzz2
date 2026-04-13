@@ -4,9 +4,9 @@ from collections.abc import Sequence
 
 import typer
 
+from sdpfuzz2.bluetooth.discovery import DiscoveryService
 from sdpfuzz2.bluetooth.l2cap_transport import L2CAPTransport
 from sdpfuzz2.bluetooth.probe import ProbeResult, SDPProbe
-from sdpfuzz2.bluetooth.discovery import DiscoveryService
 from sdpfuzz2.domain.errors import TransportError
 from sdpfuzz2.domain.models import Device
 

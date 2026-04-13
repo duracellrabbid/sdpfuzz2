@@ -58,7 +58,9 @@ class L2CAPTransport(Transport):
             sock.connect((self._target_mac, self._psm))
         except OSError as exc:
             sock.close()
-            raise TransportError(f"Failed to connect L2CAP socket to {self._target_mac}: {exc}") from exc
+            raise TransportError(
+                f"Failed to connect L2CAP socket to {self._target_mac}: {exc}"
+            ) from exc
 
         self._socket = sock
         return sock

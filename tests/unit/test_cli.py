@@ -2,8 +2,8 @@ import pytest
 import typer
 from typer.testing import CliRunner
 
-from sdpfuzz2.cli import app, select_target_device
 from sdpfuzz2.bluetooth.probe import ProbeResult
+from sdpfuzz2.cli import app, select_target_device
 from sdpfuzz2.domain.errors import TransportError
 from sdpfuzz2.domain.models import Device
 
