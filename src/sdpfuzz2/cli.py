@@ -42,6 +42,8 @@ def version() -> None:
 def scaffold_status() -> None:
     """Show current implementation phase status."""
     typer.echo("Phase 0 scaffolding complete")
+    typer.echo("Phase 1 discovery complete")
+    typer.echo("Phase 2 fuzzing in progress")
 
 
 @app.command("discover")
