@@ -29,6 +29,7 @@ Run the CLI:
 sdpfuzz2 version
 sdpfuzz2 scaffold-status
 sdpfuzz2 discover
+sdpfuzz2 probe --index 1
 ```
 
 The discovery command lists named Bluetooth devices with their MAC addresses and then prompts you to select a target. You can also pass an explicit index:
@@ -36,6 +37,14 @@ The discovery command lists named Bluetooth devices with their MAC addresses and
 ```powershell
 sdpfuzz2 discover --index 1
 ```
+
+Probe the selected target to collect valid SDP response pages and continuation states:
+
+```powershell
+sdpfuzz2 probe --index 1 --response-timeout-ms 1500
+```
+
+Note: the CLI probe command is integrated with the `SDPProbe` flow. Runtime probing over real L2CAP sockets depends on the concrete transport implementation for your Kali/Linux environment.
 
 Run the test suite:
 
@@ -93,8 +102,33 @@ Phase 1 discovery and selection are in place:
 - CLI target selection flow
 - Unit tests for discovery and selection
 
+Phase 2 valid SDP probing is now implemented:
+- Valid Service Search Attribute request builder in `sdpfuzz2.sdp.packet_builder`
+- Strict Service Search Attribute response parser in `sdpfuzz2.sdp.parser`
+- Continuation-state pagination loop in `sdpfuzz2.bluetooth.probe.SDPProbe`
+- CLI integration via `sdpfuzz2 probe` for selected targets
+- Unit tests covering byte fixtures, parser error cases, and multi-page continuation-state collection
+
 Earlier scaffolding is also in place:
 - src-layout package structure
 - quality tooling (ruff, mypy, pytest, coverage)
 - CI workflow scaffold
 - baseline domain and schema tests
+
+## Phase 2 developer notes
+
+The probe flow sends a valid Service Search Attribute request, parses the response,
+and continues probing while the remote server returns non-empty continuation states.
+
+Programmatic example:
+
+```python
+from sdpfuzz2.bluetooth.probe import SDPProbe
+
+# transport must implement send(payload: bytes) and receive(timeout_ms: int) -> bytes
+probe = SDPProbe(transport=my_transport, response_timeout_ms=1500)
+result = probe.collect_initial_state()
+
+print(result.continuation_states)
+print(result.full_attribute_list.hex())
+```

@@ -4,6 +4,8 @@ from collections.abc import Sequence
 
 import typer
 
+from sdpfuzz2.bluetooth.l2cap_transport import L2CAPTransport
+from sdpfuzz2.bluetooth.probe import ProbeResult, SDPProbe
 from sdpfuzz2.bluetooth.discovery import DiscoveryService
 from sdpfuzz2.domain.models import Device
 
@@ -30,6 +32,24 @@ def _render_discovered_devices(devices: Sequence[Device]) -> None:
         typer.echo(f"[{index}] {device.name} - {device.mac_address}")
 
 
+def _discover_and_select_target(index: int | None) -> Device:
+    devices = DiscoveryService().discover(include_unnamed=False)
+    if not devices:
+        typer.echo("No discoverable named devices found")
+        raise typer.Exit(code=1)
+
+    _render_discovered_devices(devices)
+    target = select_target_device(devices, selected_index=index)
+    typer.echo(f"Selected target: {target.name} ({target.mac_address})")
+    return target
+
+
+def _probe_selected_target(target: Device, response_timeout_ms: int) -> ProbeResult:
+    del target
+    probe = SDPProbe(transport=L2CAPTransport(), response_timeout_ms=response_timeout_ms)
+    return probe.collect_initial_state()
+
+
 @app.command()
 def version() -> None:
     """Print package version."""
@@ -43,17 +63,31 @@ def scaffold_status() -> None:
     """Show current implementation phase status."""
     typer.echo("Phase 0 scaffolding complete")
     typer.echo("Phase 1 discovery complete")
-    typer.echo("Phase 2 fuzzing in progress")
+    typer.echo("Phase 2 SDP probing complete")
 
 
 @app.command("discover")
 def discover_target(index: int | None = typer.Option(None, "--index", "-i")) -> None:
     """Discover nearby devices and select one target device."""
-    devices = DiscoveryService().discover(include_unnamed=False)
-    if not devices:
-        typer.echo("No discoverable named devices found")
-        raise typer.Exit(code=1)
+    _discover_and_select_target(index=index)
 
-    _render_discovered_devices(devices)
-    target = select_target_device(devices, selected_index=index)
-    typer.echo(f"Selected target: {target.name} ({target.mac_address})")
+
+@app.command("probe")
+def probe_target(
+    index: int | None = typer.Option(None, "--index", "-i"),
+    response_timeout_ms: int = typer.Option(1500, "--response-timeout-ms"),
+) -> None:
+    """Discover a target device and run initial valid SDP probe collection."""
+    target = _discover_and_select_target(index=index)
+    typer.echo(f"Starting SDP probe for {target.mac_address}...")
+
+    try:
+        result = _probe_selected_target(target, response_timeout_ms=response_timeout_ms)
+    except NotImplementedError as exc:
+        typer.echo(f"Probe transport is not implemented yet: {exc}")
+        raise typer.Exit(code=1) from exc
+
+    typer.echo("SDP probe completed")
+    typer.echo(f"Attribute pages collected: {len(result.attribute_list_fragments)}")
+    typer.echo(f"Continuation states collected: {len(result.continuation_states)}")
+    typer.echo(f"Combined attribute payload bytes: {len(result.full_attribute_list)}")

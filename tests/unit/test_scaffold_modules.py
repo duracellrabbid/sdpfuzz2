@@ -22,11 +22,21 @@ from sdpfuzz2.sdp.parser import parse_response
 from sdpfuzz2.sdp.templates import get_templates
 
 
+class _NoopTransport:
+    def send(self, payload: bytes) -> None:
+        del payload
+
+    def receive(self, timeout_ms: int) -> bytes:
+        del timeout_ms
+        return b"\x07\x00\x01\x00\x03\x00\x00\x00"
+
+
 def test_placeholder_components_behave_as_scaffolded() -> None:
     assert CrashDetector().should_stop() is False
 
-    with pytest.raises(NotImplementedError):
-        SDPProbe().collect_initial_state()
+    result = SDPProbe(transport=_NoopTransport()).collect_initial_state()
+    assert result.attribute_list_fragments == [b""]
+    assert result.continuation_states == []
 
     l2cap = L2CAPTransport()
     with pytest.raises(NotImplementedError):
@@ -47,10 +57,8 @@ def test_placeholder_components_behave_as_scaffolded() -> None:
     assert mutate_continuation_state(b"\x01\x02") == b"\x01\x02"
     assert get_templates() == []
 
-    with pytest.raises(NotImplementedError):
-        build_service_search_attribute_request()
-    with pytest.raises(NotImplementedError):
-        parse_response(b"\x00")
+    assert build_service_search_attribute_request().startswith(b"\x06")
+    assert parse_response(b"\x07\x00\x01\x00\x03\x00\x00\x00")["has_more"] is False
 
     with pytest.raises(NotImplementedError):
         FuzzRunner().run()
