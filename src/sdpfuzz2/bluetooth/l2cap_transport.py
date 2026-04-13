@@ -40,14 +40,15 @@ class L2CAPTransport(Transport):
         self._socket: _SocketLike | None = None
 
     def _build_default_socket(self) -> _SocketLike:
-        if not all(
-            hasattr(socket, attr) for attr in ("AF_BLUETOOTH", "SOCK_SEQPACKET", "BTPROTO_L2CAP")
+        btproto_l2cap = getattr(socket, "BTPROTO_L2CAP", None)
+        if btproto_l2cap is None or not all(
+            hasattr(socket, attr) for attr in ("AF_BLUETOOTH", "SOCK_SEQPACKET")
         ):
             raise TransportError(
                 "Bluetooth L2CAP sockets are not available on this platform/Python build"
             )
 
-        return socket.socket(socket.AF_BLUETOOTH, socket.SOCK_SEQPACKET, socket.BTPROTO_L2CAP)
+        return socket.socket(socket.AF_BLUETOOTH, socket.SOCK_SEQPACKET, btproto_l2cap)
 
     def _ensure_connected(self) -> _SocketLike:
         if self._socket is not None:

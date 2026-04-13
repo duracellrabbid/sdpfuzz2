@@ -1,11 +1,23 @@
 """SDP response parser helpers."""
 
+from typing import TypedDict
+
 from sdpfuzz2.domain.errors import PacketParseError
 
 PDU_SERVICE_SEARCH_ATTRIBUTE_RESPONSE = 0x07
 
 
-def parse_response(payload: bytes) -> dict[str, object]:
+class ParsedSDPResponse(TypedDict):
+    pdu_id: int
+    transaction_id: int
+    parameter_length: int
+    attribute_lists_byte_count: int
+    attribute_lists: bytes
+    continuation_state: bytes
+    has_more: bool
+
+
+def parse_response(payload: bytes) -> ParsedSDPResponse:
     """Parse a Service Search Attribute response payload into normalized fields."""
     if len(payload) < 5:
         raise PacketParseError("SDP response too short for header")
