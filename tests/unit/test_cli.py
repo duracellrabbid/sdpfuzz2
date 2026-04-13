@@ -114,6 +114,37 @@ def test_probe_command_uses_selected_target_and_prints_summary(
     assert "Attribute pages collected: 2" in result.stdout
     assert "Continuation states collected: 1" in result.stdout
     assert "Combined attribute payload bytes: 5" in result.stdout
+    assert "Debug probe details:" not in result.stdout
+
+
+def test_probe_command_debug_flag_prints_probe_result_details(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    runner = CliRunner()
+
+    def fake_discover(self: object, *, include_unnamed: bool = False) -> list[Device]:
+        assert include_unnamed is False
+        return [Device(name="Alpha", mac_address="00:11:22:33:44:55")]
+
+    def fake_probe_selected_target(target: Device, response_timeout_ms: int) -> ProbeResult:
+        assert target.mac_address == "00:11:22:33:44:55"
+        assert response_timeout_ms == 1500
+        return ProbeResult(
+            attribute_list_fragments=[b"\x35\x03\x09", b"\x00\x01"],
+            continuation_states=[b"\xAA\xBB"],
+        )
+
+    monkeypatch.setattr("sdpfuzz2.cli.DiscoveryService.discover", fake_discover)
+    monkeypatch.setattr("sdpfuzz2.cli._probe_selected_target", fake_probe_selected_target)
+
+    result = runner.invoke(app, ["probe", "--index", "1", "--debug"])
+
+    assert result.exit_code == 0
+    assert "Debug probe details:" in result.stdout
+    assert "attribute_page[1]_hex=350309" in result.stdout
+    assert "attribute_page[2]_hex=0001" in result.stdout
+    assert "continuation_state[1]_hex=aabb" in result.stdout
+    assert "combined_attribute_payload_hex=3503090001" in result.stdout
 
 
 def test_probe_command_returns_non_zero_when_transport_fails(

@@ -44,7 +44,14 @@ Probe the selected target to collect valid SDP response pages and continuation s
 sdpfuzz2 probe --index 1 --response-timeout-ms 1500
 ```
 
+Include debug output to print page-by-page and continuation-state hex values:
+
+```powershell
+sdpfuzz2 probe --index 1 --debug
+```
+
 The CLI `probe` command is integrated with `SDPProbe` and uses the Linux L2CAP transport implementation to connect to the selected target MAC over SDP PSM (`0x0001`).
+When `--debug` is enabled, the CLI prints additional probe details including each attribute page payload hex, continuation state hex values, and the combined payload hex.
 
 Run the test suite:
 

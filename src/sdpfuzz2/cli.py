@@ -53,6 +53,20 @@ def _probe_selected_target(target: Device, response_timeout_ms: int) -> ProbeRes
     return probe.collect_initial_state()
 
 
+def _render_probe_debug(result: ProbeResult) -> None:
+    typer.echo("Debug probe details:")
+    for index, fragment in enumerate(result.attribute_list_fragments, start=1):
+        typer.echo(f"attribute_page[{index}]_hex={fragment.hex()}")
+
+    if result.continuation_states:
+        for index, state in enumerate(result.continuation_states, start=1):
+            typer.echo(f"continuation_state[{index}]_hex={state.hex()}")
+    else:
+        typer.echo("continuation_state: none")
+
+    typer.echo(f"combined_attribute_payload_hex={result.full_attribute_list.hex()}")
+
+
 @app.command()
 def version() -> None:
     """Print package version."""
@@ -79,6 +93,7 @@ def discover_target(index: int | None = typer.Option(None, "--index", "-i")) -> 
 def probe_target(
     index: int | None = typer.Option(None, "--index", "-i"),
     response_timeout_ms: int = typer.Option(1500, "--response-timeout-ms"),
+    debug: bool = typer.Option(False, "--debug"),
 ) -> None:
     """Discover a target device and run initial valid SDP probe collection."""
     target = _discover_and_select_target(index=index)
@@ -94,3 +109,6 @@ def probe_target(
     typer.echo(f"Attribute pages collected: {len(result.attribute_list_fragments)}")
     typer.echo(f"Continuation states collected: {len(result.continuation_states)}")
     typer.echo(f"Combined attribute payload bytes: {len(result.full_attribute_list)}")
+
+    if debug:
+        _render_probe_debug(result)
