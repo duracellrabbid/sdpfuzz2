@@ -68,18 +68,26 @@ def test_placeholder_components_behave_as_scaffolded() -> None:
     l2cap.send(b"payload")
     assert l2cap.receive(timeout_ms=100).startswith(b"\x07")
 
-    with pytest.raises(NotImplementedError):
-        TotallyRandomBytesStrategy().next_packet()
-    with pytest.raises(NotImplementedError):
-        ContinuationStateLengthMutationStrategy().next_packet()
-    with pytest.raises(NotImplementedError):
-        ContinuationStateByteMutationStrategy().next_packet()
-    with pytest.raises(NotImplementedError):
-        RandomMutationStrategy().next_packet()
+    random_packet = TotallyRandomBytesStrategy(seed=1).next_packet()
+    assert isinstance(random_packet, bytes)
+    assert 16 <= len(random_packet) <= 64
+    oversized_packet = ContinuationStateLengthMutationStrategy(seed=2).next_packet()
+    assert oversized_packet[0] == 0x06
 
-    assert flip_bytes(b"abc") == b"abc"
-    assert mutate_continuation_state(b"\x01\x02") == b"\x01\x02"
-    assert get_templates() == []
+    cont_state_packet = ContinuationStateByteMutationStrategy(
+        valid_continuation_states=[b"\x01\x02\x03"],
+        seed=3,
+    ).next_packet()
+    assert cont_state_packet[0] == 0x06
+
+    random_mutation_packet = RandomMutationStrategy(seed=4).next_packet()
+    assert isinstance(random_mutation_packet, bytes)
+
+    import random
+
+    assert flip_bytes(b"abc", rng=random.Random(1)) != b"abc"
+    assert mutate_continuation_state(b"\x01\x02", rng=random.Random(2)) != b"\x01\x02"
+    assert len(get_templates()) == 3
 
     assert build_service_search_attribute_request().startswith(b"\x06")
     assert parse_response(b"\x07\x00\x01\x00\x03\x00\x00\x00")["has_more"] is False

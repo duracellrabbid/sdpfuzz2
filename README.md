@@ -117,6 +117,18 @@ Phase 2 valid SDP probing is now implemented:
 - Linux L2CAP transport implementation in `sdpfuzz2.bluetooth.l2cap_transport`
 - Unit tests covering byte fixtures, parser error cases, and multi-page continuation-state collection
 
+Phase 3 fuzzing strategy work has started (Step 1):
+- `sdpfuzz2.fuzzing.random_bytes.TotallyRandomBytesStrategy` now generates random packets.
+- Packet length is constrained by configurable `min_length` and `max_length` bounds.
+- Deterministic generation is supported via a configurable `seed`.
+- Contract tests now verify byte output, length constraints, and seeded determinism.
+
+Phase 3 Step 2 extends shared strategy contract coverage to additional modes:
+- `ContinuationStateLengthMutationStrategy` now emits valid Service Search Attribute requests with intentionally oversized continuation-state length fields.
+- `ContinuationStateByteMutationStrategy` now mutates collected continuation-state bytes while preserving continuation-state length.
+- `RandomMutationStrategy` now mutates valid request templates (Service Search, Service Attribute, and Service Search Attribute).
+- Shared contract tests validate all implemented strategies for common behavior (byte output and seeded determinism) and mode-specific constraints.
+
 Earlier scaffolding is also in place:
 - src-layout package structure
 - quality tooling (ruff, mypy, pytest, coverage)
