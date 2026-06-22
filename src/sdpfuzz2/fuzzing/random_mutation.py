@@ -19,6 +19,12 @@ class RandomMutationStrategy(FuzzingStrategy):
         seed: int | None = None,
         rng: random.Random | None = None,
     ) -> None:
+        """Initialize the strategy with valid request templates to mutate.
+
+        When `templates` is omitted the built-in SDP request templates are used.
+        `min_flips` and `max_flips` control how many byte positions are mutated
+        on each generated packet.
+        """
         resolved_templates = get_templates() if templates is None else templates
         if not resolved_templates:
             raise ValueError("templates must not be empty")
@@ -33,6 +39,7 @@ class RandomMutationStrategy(FuzzingStrategy):
         self._rng = rng if rng is not None else random.Random(seed)
 
     def next_packet(self) -> bytes:
+        """Return one mutated packet sampled from the configured template set."""
         template = self._rng.choice(self._templates)
         return flip_bytes(
             template,

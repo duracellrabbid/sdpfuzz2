@@ -16,6 +16,12 @@ class TotallyRandomBytesStrategy(FuzzingStrategy):
         seed: int | None = None,
         rng: random.Random | None = None,
     ) -> None:
+        """Initialize the strategy.
+
+        `seed` provides deterministic output for tests and reproducible fuzzing.
+        `rng` is accepted for callers that want to inject an already-configured
+        random source.
+        """
         if min_length < 1:
             raise ValueError("min_length must be >= 1")
         if max_length < min_length:
@@ -28,5 +34,6 @@ class TotallyRandomBytesStrategy(FuzzingStrategy):
         self._rng = rng if rng is not None else random.Random(seed)
 
     def next_packet(self) -> bytes:
+        """Return a new random byte string within the configured size bounds."""
         length = self._rng.randint(self._min_length, self._max_length)
         return bytes(self._rng.getrandbits(8) for _ in range(length))

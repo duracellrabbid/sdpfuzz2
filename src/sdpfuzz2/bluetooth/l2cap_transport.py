@@ -33,6 +33,11 @@ class L2CAPTransport(Transport):
         recv_size: int = 4096,
         socket_factory: Callable[[], _SocketLike] | None = None,
     ) -> None:
+        """Initialize a transport bound to a single target MAC address.
+
+        `psm` defaults to the SDP well-known PSM. `recv_size` caps each socket
+        receive, and `socket_factory` allows tests to inject a fake socket.
+        """
         self._target_mac = target_mac
         self._psm = psm
         self._recv_size = recv_size
@@ -40,6 +45,7 @@ class L2CAPTransport(Transport):
         self._socket: _SocketLike | None = None
 
     def _build_default_socket(self) -> _SocketLike:
+        """Create the platform L2CAP socket or raise when Bluetooth sockets are unavailable."""
         btproto_l2cap = getattr(socket, "BTPROTO_L2CAP", None)
         if btproto_l2cap is None or not all(
             hasattr(socket, attr) for attr in ("AF_BLUETOOTH", "SOCK_SEQPACKET")
@@ -51,6 +57,7 @@ class L2CAPTransport(Transport):
         return socket.socket(socket.AF_BLUETOOTH, socket.SOCK_SEQPACKET, btproto_l2cap)
 
     def _ensure_connected(self) -> _SocketLike:
+        """Return a connected socket, creating it lazily on first use."""
         if self._socket is not None:
             return self._socket
 
@@ -67,6 +74,7 @@ class L2CAPTransport(Transport):
         return sock
 
     def send(self, payload: bytes) -> None:
+        """Send one complete SDP payload to the target over L2CAP."""
         if not payload:
             raise ValueError("payload must not be empty")
 
@@ -82,6 +90,7 @@ class L2CAPTransport(Transport):
             )
 
     def receive(self, timeout_ms: int) -> bytes:
+        """Receive one SDP response payload within the provided timeout."""
         if timeout_ms <= 0:
             raise ValueError("timeout_ms must be greater than 0")
 

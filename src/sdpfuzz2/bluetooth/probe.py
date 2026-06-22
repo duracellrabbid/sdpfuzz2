@@ -30,11 +30,23 @@ class SDPProbe:
         response_timeout_ms: int = 1500,
         initial_transaction_id: int = 1,
     ) -> None:
+        """Initialize the probe state.
+
+        `transport` must implement synchronous `send()` and `receive()` methods.
+        `response_timeout_ms` applies to every response wait, and
+        `initial_transaction_id` controls the first request transaction ID.
+        """
         self._transport = transport
         self._response_timeout_ms = response_timeout_ms
         self._transaction_id = initial_transaction_id
 
     def collect_initial_state(self) -> ProbeResult:
+        """Collect all response fragments until the target stops returning continuation state.
+
+        Each probe request reuses the continuation token returned by the previous
+        response. Non-empty continuation states are preserved in discovery order so
+        later fuzzing strategies can mutate realistic values.
+        """
         continuation_state = b""
         continuation_states: list[bytes] = []
         fragments: list[bytes] = []

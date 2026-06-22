@@ -8,6 +8,8 @@ PDU_SERVICE_SEARCH_ATTRIBUTE_RESPONSE = 0x07
 
 
 class ParsedSDPResponse(TypedDict):
+    """Normalized fields extracted from a Service Search Attribute response."""
+
     pdu_id: int
     transaction_id: int
     parameter_length: int
@@ -18,7 +20,11 @@ class ParsedSDPResponse(TypedDict):
 
 
 def parse_response(payload: bytes) -> ParsedSDPResponse:
-    """Parse a Service Search Attribute response payload into normalized fields."""
+    """Parse a raw Service Search Attribute response into validated fields.
+
+    The returned dictionary separates the attribute-list bytes from the
+    continuation token and verifies every length field before exposing the data.
+    """
     if len(payload) < 5:
         raise PacketParseError("SDP response too short for header")
 

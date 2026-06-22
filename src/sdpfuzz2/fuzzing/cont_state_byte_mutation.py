@@ -18,6 +18,11 @@ class ContinuationStateByteMutationStrategy(FuzzingStrategy):
         seed: int | None = None,
         rng: random.Random | None = None,
     ) -> None:
+        """Initialize the strategy with continuation states collected during probing.
+
+        Packets reuse realistic continuation-state lengths and mutate only the
+        bytes within those tokens.
+        """
         if not valid_continuation_states:
             raise ValueError("valid_continuation_states must not be empty")
         if not all(state for state in valid_continuation_states):
@@ -32,11 +37,13 @@ class ContinuationStateByteMutationStrategy(FuzzingStrategy):
         self._rng = rng if rng is not None else random.Random(seed)
 
     def _next_transaction_id(self) -> int:
+        """Return the current transaction ID and advance with wrap-around."""
         current = self._transaction_id
         self._transaction_id = 1 if self._transaction_id >= 0xFFFF else self._transaction_id + 1
         return current
 
     def next_packet(self) -> bytes:
+        """Return a valid request shell carrying a mutated continuation token."""
         seed_state = self._rng.choice(self._valid_continuation_states)
         mutated_state = mutate_continuation_state(seed_state, rng=self._rng)
         return build_service_search_attribute_request(

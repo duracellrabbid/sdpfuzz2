@@ -18,6 +18,11 @@ class ContinuationStateLengthMutationStrategy(FuzzingStrategy):
         seed: int | None = None,
         rng: random.Random | None = None,
     ) -> None:
+        """Initialize the mutation bounds and transaction ID sequence.
+
+        The generated packets keep an otherwise valid request shape while
+        replacing the continuation-state length byte with an oversized value.
+        """
         if not 1 <= transaction_id_start <= 0xFFFF:
             raise ValueError("transaction_id_start must be between 1 and 65535")
         if not 0 <= min_oversized_length <= 0xFF:
@@ -35,11 +40,13 @@ class ContinuationStateLengthMutationStrategy(FuzzingStrategy):
         self._rng = rng if rng is not None else random.Random(seed)
 
     def _next_transaction_id(self) -> int:
+        """Return the current transaction ID and advance with wrap-around."""
         current = self._transaction_id
         self._transaction_id = 1 if self._transaction_id >= 0xFFFF else self._transaction_id + 1
         return current
 
     def next_packet(self) -> bytes:
+        """Return the next malformed packet with an oversized continuation length field."""
         packet = bytearray(
             build_service_search_attribute_request(
                 transaction_id=self._next_transaction_id(),

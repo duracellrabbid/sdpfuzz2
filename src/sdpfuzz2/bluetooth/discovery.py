@@ -31,6 +31,7 @@ class DiscoveryBackend(Protocol):
 
     def scan(self) -> Sequence[RawDiscoveredDevice]:
         """Return discovered devices from a platform adapter."""
+        ...
 
 
 class BlueZDBusClient(Protocol):
@@ -39,7 +40,12 @@ class BlueZDBusClient(Protocol):
     def scan_managed_objects(
         self, timeout_seconds: float
     ) -> dict[str, dict[str, dict[str, object]]]:
-        """Return BlueZ managed objects after a bounded discovery scan."""
+        """Return BlueZ managed objects after a bounded discovery scan.
+
+        `timeout_seconds` controls how long adapter discovery should run before
+        managed objects are read back from BlueZ.
+        """
+        ...
 
 
 class NoopDiscoveryBackend:
@@ -59,6 +65,11 @@ class BlueZDiscoveryBackend:
         *,
         scan_timeout_seconds: float = 2.0,
     ) -> None:
+        """Initialize the BlueZ-backed discovery adapter.
+
+        `client` allows tests to inject a fake D-Bus implementation.
+        `scan_timeout_seconds` bounds how long BlueZ discovery is left running.
+        """
         self._client = client or DBusNextBlueZClient()
         self._scan_timeout_seconds = scan_timeout_seconds
 
@@ -94,6 +105,7 @@ class DBusNextBlueZClient:
     def scan_managed_objects(
         self, timeout_seconds: float
     ) -> dict[str, dict[str, dict[str, object]]]:  # pragma: no cover
+        """Synchronously scan BlueZ objects via the async dbus-next client."""
         try:
             return asyncio.run(self._scan_managed_objects_async(timeout_seconds))
         except ImportError as error:
@@ -102,6 +114,7 @@ class DBusNextBlueZClient:
     async def _scan_managed_objects_async(
         self, timeout_seconds: float
     ) -> dict[str, dict[str, dict[str, object]]]:  # pragma: no cover
+        """Run a bounded adapter discovery cycle and return the resulting object map."""
         dbus_next: Any = importlib.import_module("dbus_next")
         dbus_next_aio: Any = importlib.import_module("dbus_next.aio")
 
@@ -141,6 +154,7 @@ class DBusNextBlueZClient:
         return _to_plain_object_map(managed_objects)
 
     def _find_adapter_path(self, managed_objects: object) -> str | None:  # pragma: no cover
+        """Return the first BlueZ adapter object path from the managed object snapshot."""
         for object_path, interfaces in _iter_managed_items(managed_objects):
             if BLUEZ_ADAPTER_INTERFACE in interfaces:
                 return object_path
@@ -148,11 +162,13 @@ class DBusNextBlueZClient:
 
 
 def _normalize_name(name: str | None) -> str:
+    """Normalize a device name and substitute the placeholder for empty values."""
     normalized = (name or "").strip()
     return normalized or UNKNOWN_DEVICE_NAME
 
 
 def _normalize_mac_address(mac_address: str) -> str:
+    """Normalize MAC address casing and surrounding whitespace."""
     return mac_address.strip().upper()
 
 
@@ -160,10 +176,16 @@ class DiscoveryService:
     """Discover and normalize Bluetooth devices."""
 
     def __init__(self, backend: DiscoveryBackend | None = None) -> None:
+        """Initialize discovery with an optional platform-specific backend."""
         self._backend = backend or _default_backend()
 
     def discover(self, *, include_unnamed: bool = False) -> list[Device]:
-        """Return normalized Bluetooth devices, optionally including unnamed targets."""
+        """Return normalized Bluetooth devices from the configured backend.
+
+        Invalid MAC addresses and duplicate devices are discarded. Discovery
+        backend failures are treated as an empty result so the CLI can fail
+        gracefully without surfacing platform-specific exceptions.
+        """
         normalized_devices: list[Device] = []
         seen_macs: set[str] = set()
 
@@ -203,34 +225,41 @@ def normalize_discovered_devices(
 
 
 class _EphemeralBackend:
+    """Adapter used to reuse DiscoveryService filtering over in-memory inputs."""
+
     def __init__(self, devices: Sequence[RawDiscoveredDevice]) -> None:
         self._devices = devices
 
     def scan(self) -> Sequence[RawDiscoveredDevice]:
+        """Return the pre-supplied in-memory device sequence."""
         return self._devices
 
 
 def _default_backend() -> DiscoveryBackend:
+    """Return the platform default discovery backend."""
     if platform.system() == "Linux":
         return BlueZDiscoveryBackend()
     return NoopDiscoveryBackend()
 
 
 def _coerce_optional_str(value: object) -> str | None:
+    """Return the value when it is already a string, otherwise `None`."""
     if isinstance(value, str):
         return value
     return None
 
 
 def _unwrap_dbus_value(value: object) -> object:
+    """Extract `.value` from dbus-next wrapper objects while leaving plain values untouched."""
     if hasattr(value, "value"):
-        return value.value
+        return getattr(value, "value")
     return value
 
 
 def _iter_managed_items(
     managed_objects: object,
 ) -> list[tuple[str, dict[str, object]]]:  # pragma: no cover
+    """Return only well-typed object/interface pairs from a managed object payload."""
     if not isinstance(managed_objects, dict):
         return []
 
@@ -245,6 +274,7 @@ def _iter_managed_items(
 def _to_plain_object_map(
     managed_objects: object,
 ) -> dict[str, dict[str, dict[str, object]]]:  # pragma: no cover
+    """Convert dbus-next managed objects into plain nested dictionaries."""
     plain_map: dict[str, dict[str, dict[str, object]]] = {}
     for object_path, interface_map in _iter_managed_items(managed_objects):
         interfaces: dict[str, dict[str, object]] = {}

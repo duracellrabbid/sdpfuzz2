@@ -10,7 +10,9 @@ class RunLogger:
     """Persists run logs in JSON format."""
 
     def __init__(self, output_path: Path) -> None:
+        """Initialize the logger with the destination JSON file path."""
         self.output_path = output_path
 
     def write(self, run_log: RunLog) -> None:
+        """Serialize a run log snapshot to disk using an indented JSON encoding."""
         self.output_path.write_text(json.dumps(run_log.to_dict(), indent=2), encoding="utf-8")
