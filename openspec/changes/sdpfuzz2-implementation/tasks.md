@@ -1,7 +1,7 @@
 ## 1. Project Bootstrap and Tooling
 
 - [x] 1.1 Initialize git repository and pyproject.toml with src-layout structure
-- [ ] 1.2 Configure Python 3.11+ version requirement and core dependencies (pytest, pydantic, typer, rich, structlog, dbus-next, anyio)
+- [x] 1.2 Configure Python 3.11+ version requirement and core dependencies (pytest, pydantic, typer, rich, structlog, dbus-next, anyio)
 - [x] 1.3 Set up ruff/black for linting and formatting
 - [x] 1.4 Configure mypy with strict type checking
 - [x] 1.5 Set up pytest with pytest-cov for coverage tracking (start at 90% gate)
@@ -20,8 +20,8 @@
 - [x] 2.5 Write tests for interactive device selection CLI
 - [x] 2.6 Implement target selector with index-based input validation
 - [x] 2.7 Create Typer CLI command for `sdpfuzz2 discover`
-- [ ] 2.8 Add Rich terminal UI for device list display (formatted table)
-- [ ] 2.9 Write integration tests for discovery on mock SDP server
+- [x] 2.8 Add Rich terminal UI for device list display (formatted table)
+- [x] 2.9 Write integration tests for discovery on mock SDP server
 - [x] 2.10 Verify phase complete: can list devices and select target without real hardware
 
 ## 3. SDP Probe and Continuation State Collection
@@ -30,12 +30,12 @@
 - [x] 3.2 Implement SDP packet builder for Service Search Attribute request
 - [x] 3.3 Write unit tests for SDP response parser (complete, continuation, malformed)
 - [x] 3.4 Implement SDP response parser with continuation state extraction
-- [ ] 3.5 Write contract tests for probe behavior (timeout, retry, state collection)
-- [ ] 3.6 Implement SDPProbe class with configurable timeout and retry logic
+- [x] 3.5 Write contract tests for probe behavior (timeout, retry, state collection)
+- [x] 3.6 Implement SDPProbe class with configurable timeout and retry logic
 - [x] 3.7 Implement continuation state collection loop (iterative requests until no more data)
-- [ ] 3.8 Write integration tests for probe with mock SDP server
-- [ ] 3.9 Add CLI command `sdpfuzz2 probe --target <MAC>` for manual probing
-- [ ] 3.10 Verify phase complete: probe collects all services and continuation states from mock server
+- [x] 3.8 Write integration tests for probe with mock SDP server
+- [x] 3.9 Add CLI command `sdpfuzz2 probe --target <MAC>` for manual probing
+- [x] 3.10 Verify phase complete: probe collects all services and continuation states from mock server
 
 ## 4. Fuzzing Strategies
 

@@ -50,8 +50,10 @@ def test_discover_command_uses_option_index(monkeypatch: pytest.MonkeyPatch) -> 
     result = runner.invoke(app, ["discover", "--index", "2"])
 
     assert result.exit_code == 0
-    assert "[1] Alpha - 00:11:22:33:44:55" in result.stdout
-    assert "[2] Beta - AA:BB:CC:DD:EE:FF" in result.stdout
+    assert "Alpha" in result.stdout
+    assert "00:11:22:33:44:55" in result.stdout
+    assert "Beta" in result.stdout
+    assert "AA:BB:CC:DD:EE:FF" in result.stdout
     assert "Selected target: Beta (AA:BB:CC:DD:EE:FF)" in result.stdout
 
 

@@ -3,6 +3,8 @@
 from collections.abc import Sequence
 
 import typer
+from rich.console import Console
+from rich.table import Table
 
 from sdpfuzz2.bluetooth.discovery import DiscoveryService
 from sdpfuzz2.bluetooth.l2cap_transport import L2CAPTransport
@@ -29,8 +31,13 @@ def select_target_device(devices: Sequence[Device], selected_index: int | None =
 
 
 def _render_discovered_devices(devices: Sequence[Device]) -> None:
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("#", style="cyan", justify="right")
+    table.add_column("Name")
+    table.add_column("MAC Address")
     for index, device in enumerate(devices, start=1):
-        typer.echo(f"[{index}] {device.name} - {device.mac_address}")
+        table.add_row(str(index), device.name, device.mac_address)
+    Console().print(table)
 
 
 def _discover_and_select_target(index: int | None) -> Device:
