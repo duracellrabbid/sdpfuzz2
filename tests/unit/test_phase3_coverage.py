@@ -283,9 +283,7 @@ def test_discovery_service_covers_noop_and_helper_edges() -> None:
     )
 
     assert plain_map == {
-        "/org/bluez/hci0/dev_test": {
-            "org.bluez.Device1": {"Address": "AA:BB:CC:DD:EE:FF"}
-        }
+        "/org/bluez/hci0/dev_test": {"org.bluez.Device1": {"Address": "AA:BB:CC:DD:EE:FF"}}
     }
 
 
@@ -299,9 +297,7 @@ def test_bluez_backend_skips_objects_without_device_interface() -> None:
 
     backend = BlueZDiscoveryBackend(client=_BlueZClientStub(managed_objects))
 
-    assert backend.scan() == [
-        RawDiscoveredDevice(name="Speaker", mac_address="AA:BB:CC:DD:EE:FF")
-    ]
+    assert backend.scan() == [RawDiscoveredDevice(name="Speaker", mac_address="AA:BB:CC:DD:EE:FF")]
 
 
 class _BlueZClientStub:

@@ -3,14 +3,14 @@
 PDU_SERVICE_SEARCH_ATTRIBUTE_REQUEST = 0x06
 
 # SDP Data Element type descriptors (top 5 bits = type, bottom 3 bits = size descriptor)
-_DE_TYPE_UINT = 0x08       # Unsigned integer
-_DE_TYPE_UUID = 0x18       # UUID
-_DE_TYPE_SEQUENCE = 0x30   # Data element sequence
+_DE_TYPE_UINT = 0x08  # Unsigned integer
+_DE_TYPE_UUID = 0x18  # UUID
+_DE_TYPE_SEQUENCE = 0x30  # Data element sequence
 
 # Size descriptors for inline sizes
-_DE_SIZE_2_BYTES = 0x01    # 2-byte value (combined with type: e.g. 0x19 = UUID 2-byte)
-_DE_SIZE_4_BYTES = 0x02    # 4-byte value
-_DE_SIZE_LEN1 = 0x05       # Length in following 1 byte
+_DE_SIZE_2_BYTES = 0x01  # 2-byte value (combined with type: e.g. 0x19 = UUID 2-byte)
+_DE_SIZE_4_BYTES = 0x02  # 4-byte value
+_DE_SIZE_LEN1 = 0x05  # Length in following 1 byte
 
 
 def encode_uuid(uuid: int) -> bytes:
@@ -120,8 +120,12 @@ def build_service_search_attribute_request(
     if not 0 <= max_attribute_byte_count <= 0xFFFF:
         raise ValueError("max_attribute_byte_count must be between 0 and 65535")
 
-    search_pattern = build_service_search_pattern(uuids if uuids is not None else [UUID_PUBLIC_BROWSE_GROUP])
-    attribute_id_list = build_attribute_id_list(attributes if attributes is not None else [ATTR_RANGE_ALL])
+    search_pattern = build_service_search_pattern(
+        uuids if uuids is not None else [UUID_PUBLIC_BROWSE_GROUP]
+    )
+    attribute_id_list = build_attribute_id_list(
+        attributes if attributes is not None else [ATTR_RANGE_ALL]
+    )
 
     params = (
         search_pattern

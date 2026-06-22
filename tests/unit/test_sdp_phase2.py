@@ -30,9 +30,12 @@ def _build_response(
         + bytes((len(continuation_state),))
         + continuation_state
     )
-    return b"\x07" + transaction_id.to_bytes(2, byteorder="big") + len(params).to_bytes(
-        2, byteorder="big"
-    ) + params
+    return (
+        b"\x07"
+        + transaction_id.to_bytes(2, byteorder="big")
+        + len(params).to_bytes(2, byteorder="big")
+        + params
+    )
 
 
 def test_build_service_search_attribute_request_default_fixture() -> None:
