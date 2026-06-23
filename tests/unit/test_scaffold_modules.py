@@ -54,7 +54,10 @@ class _SocketStub:
 
 
 def test_placeholder_components_behave_as_scaffolded() -> None:
-    assert CrashDetector().should_stop() is False
+    # CrashDetector is now fully implemented
+    detector = CrashDetector()
+    assert detector.timeout_threshold == 3
+    assert len(detector.timeout_counters) == 0
 
     result = SDPProbe(transport=_NoopTransport()).collect_initial_state()
     assert result.attribute_list_fragments == [b""]

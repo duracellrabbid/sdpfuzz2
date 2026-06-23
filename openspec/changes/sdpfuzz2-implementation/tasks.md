@@ -54,16 +54,16 @@
 
 ## 5. Crash Detection and Confidence Scoring
 
-- [ ] 5.1 Write unit tests for CrashDetector with simulated crash scenarios
-- [ ] 5.2 Implement timeout-based crash detection (N consecutive timeouts)
-- [ ] 5.3 Implement connection-state crash detection (refused/reset after success)
-- [ ] 5.4 Implement HCI error classification (local vs remote)
-- [ ] 5.5 Write tests for crash confidence scoring (high/medium/unknown)
-- [ ] 5.6 Implement worker corroboration logic (multi-worker agreement increases confidence)
-- [ ] 5.7 Implement control probe validation (send known-good packet to validate crash)
-- [ ] 5.8 Write tests for false-positive mitigation under packet loss
-- [ ] 5.9 Implement global stop signal broadcast to all workers
-- [ ] 5.10 Verify crash detection meets confidence requirements without false positives
+- [x] 5.1 Write unit tests for CrashDetector with simulated crash scenarios
+- [x] 5.2 Implement timeout-based crash detection (N consecutive timeouts)
+- [x] 5.3 Implement connection-state crash detection (refused/reset after success)
+- [x] 5.4 Implement HCI error classification (local vs remote)
+- [x] 5.5 Write tests for crash confidence scoring (high/medium/unknown)
+- [x] 5.6 Implement worker corroboration logic (multi-worker agreement increases confidence)
+- [x] 5.7 Implement control probe validation (send known-good packet to validate crash)
+- [x] 5.8 Write tests for false-positive mitigation under packet loss
+- [x] 5.9 Implement global stop signal broadcast to all workers
+- [x] 5.10 Verify crash detection meets confidence requirements without false positives
 
 ## 6. Concurrent Worker Pool and Scheduling
 
