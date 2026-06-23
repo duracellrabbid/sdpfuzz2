@@ -29,18 +29,14 @@ class TestCrashDetectionConfidenceContract:
 
     def test_high_confidence_requires_corroboration(self) -> None:
         """Contract: HIGH confidence requires worker corroboration."""
-        detector = CrashDetector(
-            timeout_threshold=2, worker_agreement_threshold=0.5
-        )
+        detector = CrashDetector(timeout_threshold=2, worker_agreement_threshold=0.5)
 
         # Multiple workers detect crash
         for worker_id in [1, 2, 3]:
             detector.record_timeout(worker_id=worker_id)
             detector.record_timeout(worker_id=worker_id)
 
-        result = detector.evaluate_worker_corroboration(
-            worker_ids=[1, 2, 3, 4, 5]
-        )
+        result = detector.evaluate_worker_corroboration(worker_ids=[1, 2, 3, 4, 5])
         assert result is not None
         assert result.confidence == CrashConfidence.HIGH
 
@@ -55,9 +51,7 @@ class TestCrashDetectionConfidenceContract:
         assert crash_event.confidence == CrashConfidence.MEDIUM
 
         # Failed control probe elevates to HIGH
-        result = detector.validate_with_control_probe(
-            worker_id=1, control_probe_succeeded=False
-        )
+        result = detector.validate_with_control_probe(worker_id=1, control_probe_succeeded=False)
         assert result is not None
         assert result.confidence == CrashConfidence.HIGH
 
@@ -69,9 +63,7 @@ class TestCrashDetectionConfidenceContract:
         assert result is not None
         assert result.reason is not None
         assert len(result.reason) > 0
-        assert "timeout" in result.reason.lower() or (
-            "consecutive" in result.reason.lower()
-        )
+        assert "timeout" in result.reason.lower() or ("consecutive" in result.reason.lower())
 
     def test_worker_ids_tracked_in_event(self) -> None:
         """Contract: crash event tracks which workers detected signal."""
@@ -116,9 +108,7 @@ class TestFalsePositiveRequirements:
         detector.record_timeout(worker_id=1)
 
         # Control probe success clears it
-        result = detector.validate_with_control_probe(
-            worker_id=1, control_probe_succeeded=True
-        )
+        result = detector.validate_with_control_probe(worker_id=1, control_probe_succeeded=True)
         assert result is None
         assert detector.timeout_counters[1] == 0
 
@@ -131,9 +121,7 @@ class TestFalsePositiveRequirements:
 
     def test_single_worker_insufficient_for_high_confidence(self) -> None:
         """Contract: single worker cannot reach HIGH confidence without control probe."""
-        detector = CrashDetector(
-            timeout_threshold=2, worker_agreement_threshold=0.5
-        )
+        detector = CrashDetector(timeout_threshold=2, worker_agreement_threshold=0.5)
 
         # Single worker crash
         detector.record_timeout(worker_id=1)
@@ -144,9 +132,7 @@ class TestFalsePositiveRequirements:
         detector.record_success(worker_id=3)
 
         # Insufficient agreement for HIGH
-        result = detector.evaluate_worker_corroboration(
-            worker_ids=[1, 2, 3]
-        )
+        result = detector.evaluate_worker_corroboration(worker_ids=[1, 2, 3])
         assert result is None
 
 

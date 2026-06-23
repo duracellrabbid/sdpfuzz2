@@ -68,18 +68,14 @@ class TestFalsePositiveMitigation:
         detector.record_timeout(worker_id=1)
 
         # But control probe succeeds (false positive due to network issue)
-        result = detector.validate_with_control_probe(
-            worker_id=1, control_probe_succeeded=True
-        )
+        result = detector.validate_with_control_probe(worker_id=1, control_probe_succeeded=True)
 
         assert result is None
         assert detector.timeout_counters[1] == 0
 
     def test_multiple_workers_reduce_false_positives(self) -> None:
         """Test: requiring multi-worker agreement reduces false positives."""
-        detector = CrashDetector(
-            timeout_threshold=2, worker_agreement_threshold=0.5
-        )
+        detector = CrashDetector(timeout_threshold=2, worker_agreement_threshold=0.5)
 
         # One worker has timeout (could be network issue)
         detector.record_timeout(worker_id=1)
@@ -139,8 +135,7 @@ class TestGlobalStopSignal:
     def test_multiple_workers_receive_stop_signal(self) -> None:
         """Test: all workers are notified when stop signal is broadcast."""
         stop_signals = {
-            worker_id: {"stop": True, "reason": "Crash detected"}
-            for worker_id in range(1, 5)
+            worker_id: {"stop": True, "reason": "Crash detected"} for worker_id in range(1, 5)
         }
 
         for worker_id in range(1, 5):
@@ -192,9 +187,7 @@ class TestCrashDetectionIntegration:
         assert result2.confidence == CrashConfidence.MEDIUM
 
         # Multi-worker corroboration
-        result_corr = detector.evaluate_worker_corroboration(
-            worker_ids=[1, 2, 3, 4]
-        )
+        result_corr = detector.evaluate_worker_corroboration(worker_ids=[1, 2, 3, 4])
         assert result_corr is not None
         assert result_corr.confidence == CrashConfidence.HIGH
 
@@ -208,9 +201,7 @@ class TestCrashDetectionIntegration:
         assert result1 is not None
 
         # But control probe succeeds
-        result2 = detector.validate_with_control_probe(
-            worker_id=1, control_probe_succeeded=True
-        )
+        result2 = detector.validate_with_control_probe(worker_id=1, control_probe_succeeded=True)
         assert result2 is None
 
         # Worker recovers

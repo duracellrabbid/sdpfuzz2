@@ -154,9 +154,7 @@ class TestConnectionFailureDetection:
         """Test: successful response resets connection failure counter."""
         detector = CrashDetector(connection_failure_threshold=2)
 
-        detector.record_connection_failure(
-            worker_id=1, failure_type=ErrorType.CONNECTION_REFUSED
-        )
+        detector.record_connection_failure(worker_id=1, failure_type=ErrorType.CONNECTION_REFUSED)
         detector.record_success(worker_id=1)
 
         # Counter should reset
@@ -204,9 +202,7 @@ class TestCrashConfidenceScoring:
     def test_crash_signal_timeout_requires_count(self) -> None:
         """Test: TIMEOUT error requires consecutive_timeouts > 0."""
         with pytest.raises(ValueError, match="consecutive_timeouts"):
-            CrashSignal(
-                worker_id=1, error_type=ErrorType.TIMEOUT, consecutive_timeouts=0
-            )
+            CrashSignal(worker_id=1, error_type=ErrorType.TIMEOUT, consecutive_timeouts=0)
 
     def test_crash_event_requires_worker_ids(self) -> None:
         """Test: CrashEvent requires at least one worker_id."""
@@ -259,9 +255,7 @@ class TestWorkerCorroboration:
 
     def test_corroboration_with_100_percent_threshold(self) -> None:
         """Test: 100% agreement threshold requires all workers."""
-        detector = CrashDetector(
-            timeout_threshold=2, worker_agreement_threshold=1.0
-        )
+        detector = CrashDetector(timeout_threshold=2, worker_agreement_threshold=1.0)
 
         # Two workers out of four detect crashes
         detector.record_timeout(worker_id=1)
@@ -291,9 +285,7 @@ class TestControlProbeValidation:
         detector.record_timeout(worker_id=1)
 
         # Control probe succeeds
-        result = detector.validate_with_control_probe(
-            worker_id=1, control_probe_succeeded=True
-        )
+        result = detector.validate_with_control_probe(worker_id=1, control_probe_succeeded=True)
 
         assert result is None
         assert detector.timeout_counters[1] == 0
@@ -307,9 +299,7 @@ class TestControlProbeValidation:
         detector.record_timeout(worker_id=1)
 
         # Control probe fails
-        result = detector.validate_with_control_probe(
-            worker_id=1, control_probe_succeeded=False
-        )
+        result = detector.validate_with_control_probe(worker_id=1, control_probe_succeeded=False)
 
         assert result is not None
         assert result.confidence == CrashConfidence.HIGH
@@ -319,9 +309,7 @@ class TestControlProbeValidation:
         """Test: control probe on worker without crash signal returns None."""
         detector = CrashDetector()
 
-        result = detector.validate_with_control_probe(
-            worker_id=1, control_probe_succeeded=False
-        )
+        result = detector.validate_with_control_probe(worker_id=1, control_probe_succeeded=False)
 
         assert result is None
 
@@ -335,9 +323,7 @@ class TestWorkerStateReset:
 
         detector.record_timeout(worker_id=1)
         detector.record_timeout(worker_id=1)
-        detector.record_connection_failure(
-            worker_id=1, failure_type=ErrorType.CONNECTION_REFUSED
-        )
+        detector.record_connection_failure(worker_id=1, failure_type=ErrorType.CONNECTION_REFUSED)
 
         detector.reset_worker(worker_id=1)
 

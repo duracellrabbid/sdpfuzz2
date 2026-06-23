@@ -186,9 +186,7 @@ class CrashDetector:
             error_type=ErrorType.REMOTE_DEVICE_ERROR,
         )
 
-    def evaluate_worker_corroboration(
-        self, worker_ids: list[int]
-    ) -> "CrashEvent | None":
+    def evaluate_worker_corroboration(self, worker_ids: list[int]) -> "CrashEvent | None":
         """Evaluate if multiple workers agree on crash (increases confidence).
 
         Args:
