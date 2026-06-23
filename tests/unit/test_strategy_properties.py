@@ -170,9 +170,7 @@ class TestRandomMutationStrategyProperties:
         max_flips=st.integers(min_value=1, max_value=15),
     )
     @settings(max_examples=100, suppress_health_check=[HealthCheck.filter_too_much])
-    def test_mutated_packets_differ_from_template(
-        self, min_flips: int, max_flips: int
-    ) -> None:
+    def test_mutated_packets_differ_from_template(self, min_flips: int, max_flips: int) -> None:
         """Property: mutated packets should differ from original templates."""
         if min_flips > max_flips:
             min_flips, max_flips = max_flips, min_flips

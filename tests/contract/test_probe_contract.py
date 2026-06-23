@@ -159,9 +159,7 @@ def test_probe_raises_on_transport_timeout() -> None:
 
 def test_probe_collects_empty_fragments_list_with_empty_attributes() -> None:
     """Contract: probe should handle responses with minimal attribute data."""
-    transport = FakeTransport(
-        responses=[{"attribute_lists": b"", "continuation_state": b""}]
-    )
+    transport = FakeTransport(responses=[{"attribute_lists": b"", "continuation_state": b""}])
     probe = SDPProbe(transport)
 
     result = probe.collect_initial_state()

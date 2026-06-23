@@ -14,9 +14,7 @@ from sdpfuzz2.fuzzing.random_mutation import RandomMutationStrategy
 from sdpfuzz2.sdp.templates import get_templates
 
 
-async def _call_strategy_concurrently(
-    strategy_factory: Any, num_tasks: int
-) -> list[bytes]:
+async def _call_strategy_concurrently(strategy_factory: Any, num_tasks: int) -> list[bytes]:
     """Call a strategy's next_packet method concurrently from multiple tasks."""
 
     async def task() -> list[bytes]:
@@ -114,9 +112,7 @@ def test_mixed_strategy_concurrent_workload() -> None:
         strategies = [
             TotallyRandomBytesStrategy(seed=111),
             ContinuationStateLengthMutationStrategy(seed=222),
-            ContinuationStateByteMutationStrategy(
-                valid_continuation_states=[b"\xAA"], seed=333
-            ),
+            ContinuationStateByteMutationStrategy(valid_continuation_states=[b"\xAA"], seed=333),
             RandomMutationStrategy(templates=templates, seed=444),
         ]
 
