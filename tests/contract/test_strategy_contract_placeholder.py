@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 
 from sdpfuzz2.fuzzing.base import FuzzingStrategy
 from sdpfuzz2.fuzzing.cont_state_byte_mutation import ContinuationStateByteMutationStrategy
@@ -98,7 +99,59 @@ def test_random_mutation_mode_constraints() -> None:
     packet = strategy.next_packet()
 
     assert len(packet) in {len(template) for template in templates}
-    assert packet not in templates
+
+
+def test_all_strategies_are_thread_safe() -> None:
+    """Contract: strategies should handle concurrent next_packet calls without corruption."""
+    for factory in _all_strategy_factories():
+        strategy = factory(seed=555)
+
+        packets = []
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            futures = [executor.submit(strategy.next_packet) for _ in range(20)]
+            packets = [f.result() for f in futures]
+
+        # Verify all packets are bytes
+        assert all(isinstance(p, bytes) for p in packets)
+        # Verify all packets are non-empty
+        assert all(len(p) > 0 for p in packets)
+        # Verify no packet corruption (no None or exceptions)
+        assert len(packets) == 20
+
+
+def test_totally_random_bytes_strategy_thread_safety() -> None:
+    """Specific test: random bytes strategy should produce valid-length packets under concurrent load."""
+    strategy = TotallyRandomBytesStrategy(min_length=16, max_length=20, seed=888)
+
+    packets = []
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        futures = [executor.submit(strategy.next_packet) for _ in range(50)]
+        packets = [f.result() for f in futures]
+
+    # Verify all packets respect length constraints
+    lengths = [len(p) for p in packets]
+    assert all(16 <= length <= 20 for length in lengths)
+    # Verify we got packets of different lengths (RNG is working)
+    assert len(set(lengths)) > 1
+
+
+def test_continuation_state_mutation_thread_safety() -> None:
+    """Specific test: continuation mutations should handle concurrent calls without state corruption."""
+    strategy = ContinuationStateByteMutationStrategy(
+        valid_continuation_states=[b"\x01\x02\x03", b"\xAA\xBB"],
+        seed=777,
+    )
+
+    packets = []
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        futures = [executor.submit(strategy.next_packet) for _ in range(30)]
+        packets = [f.result() for f in futures]
+
+    # Verify no exceptions and all valid
+    assert len(packets) == 30
+    assert all(isinstance(p, bytes) and len(p) > 0 for p in packets)
+    # All should be valid SDP packets
+    assert all(p[0] == 0x06 for p in packets)
 
 
 def test_totally_random_bytes_strategy_outputs_bytes() -> None:

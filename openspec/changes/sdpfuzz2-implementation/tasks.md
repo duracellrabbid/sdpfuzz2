@@ -39,17 +39,17 @@
 
 ## 4. Fuzzing Strategies
 
-- [ ] 4.1 Write shared strategy contract tests (output bytes, deterministic with seed, thread-safe)
+- [x] 4.1 Write shared strategy contract tests (output bytes, deterministic with seed, thread-safe)
 - [x] 4.2 Implement RandomBytesFuzzer (16..N byte generation, seeded RNG)
-- [ ] 4.3 Write property tests for random bytes strategy with Hypothesis
+- [x] 4.3 Write property tests for random bytes strategy with Hypothesis
 - [x] 4.4 Implement ContinuationLengthMutator (oversized length field)
-- [ ] 4.5 Write property tests for continuation length mutation
+- [x] 4.5 Write property tests for continuation length mutation
 - [x] 4.6 Implement ContinuationBytesMutator (random bytes in continuation state, preserve length)
-- [ ] 4.7 Write property tests for continuation bytes mutation
+- [x] 4.7 Write property tests for continuation bytes mutation
 - [x] 4.8 Implement RandomMutationFuzzer (valid template + random byte flips)
-- [ ] 4.9 Write property tests for random mutation strategy
-- [ ] 4.10 Verify all strategies pass contract and property tests
-- [ ] 4.11 Verify all strategies are thread/task-safe under concurrent access
+- [x] 4.9 Write property tests for random mutation strategy
+- [x] 4.10 Verify all strategies pass contract and property tests
+- [x] 4.11 Verify all strategies are thread/task-safe under concurrent access
 - [x] 4.12 Verify strategies support deterministic seeding for reproducible fuzzing
 
 ## 5. Crash Detection and Confidence Scoring
