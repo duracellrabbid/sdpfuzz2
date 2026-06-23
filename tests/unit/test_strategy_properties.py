@@ -4,10 +4,15 @@ These tests verify strategy behavior holds across a wide range of input
 combinations and edge cases using property-based testing.
 """
 
-from hypothesis import given, strategies as st, settings, HealthCheck
+from hypothesis import HealthCheck, given, settings
+from hypothesis import strategies as st
 
-from sdpfuzz2.fuzzing.cont_state_byte_mutation import ContinuationStateByteMutationStrategy
-from sdpfuzz2.fuzzing.cont_state_len_mutation import ContinuationStateLengthMutationStrategy
+from sdpfuzz2.fuzzing.cont_state_byte_mutation import (
+    ContinuationStateByteMutationStrategy,
+)
+from sdpfuzz2.fuzzing.cont_state_len_mutation import (
+    ContinuationStateLengthMutationStrategy,
+)
 from sdpfuzz2.fuzzing.random_bytes import TotallyRandomBytesStrategy
 from sdpfuzz2.fuzzing.random_mutation import RandomMutationStrategy
 from sdpfuzz2.sdp.templates import get_templates
@@ -27,7 +32,9 @@ class TestTotallyRandomBytesStrategyProperties:
         if min_length > max_length:
             min_length, max_length = max_length, min_length
 
-        strategy = TotallyRandomBytesStrategy(min_length=min_length, max_length=max_length, seed=seed)
+        strategy = TotallyRandomBytesStrategy(
+            min_length=min_length, max_length=max_length, seed=seed
+        )
 
         for _ in range(20):
             packet = strategy.next_packet()

@@ -13,7 +13,7 @@ from sdpfuzz2.domain.errors import TransportError
 class MockSDPServer:
     """Simulates a Bluetooth device with SDP services."""
 
-    def __init__(self, services_data: list[dict]):
+    def __init__(self, services_data: list[dict[str, bytes]]) -> None:
         """Initialize mock server with service response data.
 
         Args:
@@ -21,7 +21,7 @@ class MockSDPServer:
         """
         self.services_data = services_data
         self.request_count = 0
-        self.received_requests = []
+        self.received_requests: list[bytes] = []
 
     def send(self, payload: bytes) -> None:
         """Record outgoing request."""
@@ -45,7 +45,7 @@ class MockSDPServer:
             + continuation
         )
 
-        response = (
+        response: bytes = (
             b"\x07"  # PDU type: Service Search Attribute Response
             + self.request_count.to_bytes(2, byteorder="big")  # transaction ID
             + len(params).to_bytes(2, byteorder="big")  # parameter length
@@ -205,8 +205,8 @@ def test_probe_respects_configured_timeout() -> None:
     """Integration: probe should pass configured timeout to transport."""
 
     class TimeoutTrackingServer:
-        def __init__(self):
-            self.timeouts_received = []
+        def __init__(self) -> None:
+            self.timeouts_received: list[int] = []
 
         def send(self, payload: bytes) -> None:
             pass

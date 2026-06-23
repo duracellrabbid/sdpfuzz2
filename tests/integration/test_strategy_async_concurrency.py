@@ -5,6 +5,7 @@ multiple asyncio tasks, which is closer to the actual orchestration context.
 """
 
 import asyncio
+from typing import Any
 
 from sdpfuzz2.fuzzing.cont_state_byte_mutation import ContinuationStateByteMutationStrategy
 from sdpfuzz2.fuzzing.cont_state_len_mutation import ContinuationStateLengthMutationStrategy
@@ -14,7 +15,7 @@ from sdpfuzz2.sdp.templates import get_templates
 
 
 async def _call_strategy_concurrently(
-    strategy_factory, num_tasks: int
+    strategy_factory: Any, num_tasks: int
 ) -> list[bytes]:
     """Call a strategy's next_packet method concurrently from multiple tasks."""
 
@@ -36,7 +37,7 @@ def test_totally_random_bytes_strategy_async_safety() -> None:
     """Test: random bytes strategy should handle concurrent asyncio task calls."""
     strategy = TotallyRandomBytesStrategy(min_length=16, max_length=24, seed=888)
 
-    async def run_test():
+    async def run_test() -> None:
         packets = await _call_strategy_concurrently(strategy, num_tasks=8)
         assert len(packets) == 80  # 8 tasks * 10 packets each
         assert all(isinstance(p, bytes) for p in packets)
@@ -55,7 +56,7 @@ def test_continuation_length_mutation_strategy_async_safety() -> None:
         seed=777,
     )
 
-    async def run_test():
+    async def run_test() -> None:
         packets = await _call_strategy_concurrently(strategy, num_tasks=6)
         assert len(packets) == 60  # 6 tasks * 10 packets each
         assert all(isinstance(p, bytes) for p in packets)
@@ -72,7 +73,7 @@ def test_continuation_byte_mutation_strategy_async_safety() -> None:
         seed=666,
     )
 
-    async def run_test():
+    async def run_test() -> None:
         packets = await _call_strategy_concurrently(strategy, num_tasks=5)
         assert len(packets) == 50  # 5 tasks * 10 packets each
         assert all(isinstance(p, bytes) for p in packets)
@@ -87,7 +88,7 @@ def test_random_mutation_strategy_async_safety() -> None:
     templates = get_templates()
     strategy = RandomMutationStrategy(templates=templates, seed=555)
 
-    async def run_test():
+    async def run_test() -> None:
         packets = await _call_strategy_concurrently(strategy, num_tasks=4)
         assert len(packets) == 40  # 4 tasks * 10 packets each
         assert all(isinstance(p, bytes) for p in packets)
@@ -101,14 +102,14 @@ def test_random_mutation_strategy_async_safety() -> None:
 def test_mixed_strategy_concurrent_workload() -> None:
     """Test: all strategies should safely run concurrently."""
 
-    async def run_strategy_task(factory) -> list[bytes]:
+    async def run_strategy_task(factory: Any) -> list[bytes]:
         packets = []
         for _ in range(5):
             packets.append(factory.next_packet())
             await asyncio.sleep(0)
         return packets
 
-    async def run_test():
+    async def run_test() -> None:
         templates = get_templates()
         strategies = [
             TotallyRandomBytesStrategy(seed=111),
@@ -142,7 +143,7 @@ def test_strategy_concurrent_determinism_consistency() -> None:
             packets.append(strategy.next_packet())
         return packets
 
-    async def run_test():
+    async def run_test() -> None:
         # Generate in "serial" (within an async context)
         serial_packets = await generate_packets(20)
 

@@ -252,7 +252,7 @@ def _coerce_optional_str(value: object) -> str | None:
 def _unwrap_dbus_value(value: object) -> object:
     """Extract `.value` from dbus-next wrapper objects while leaving plain values untouched."""
     if hasattr(value, "value"):
-        return getattr(value, "value")
+        return value.value
     return value
 
 

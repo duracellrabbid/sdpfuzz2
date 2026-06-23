@@ -17,7 +17,9 @@ from sdpfuzz2.domain.errors import TransportError
 class FakeTransport:
     """Synchronous fake transport for deterministic probe testing."""
 
-    def __init__(self, responses: list[dict] | None = None, timeout_after: int | None = None):
+    def __init__(
+        self, responses: list[dict[str, bytes]] | None = None, timeout_after: int | None = None
+    ) -> None:
         """Initialize fake transport.
 
         Args:
@@ -27,7 +29,7 @@ class FakeTransport:
         self.responses = responses or []
         self.timeout_after = timeout_after
         self.send_count = 0
-        self.last_sent_payload = None
+        self.last_sent_payload: bytes | None = None
         self.received_timeouts = 0
 
     def send(self, payload: bytes) -> None:

@@ -104,7 +104,7 @@ def test_random_mutation_mode_constraints() -> None:
 def test_all_strategies_are_thread_safe() -> None:
     """Contract: strategies should handle concurrent next_packet calls without corruption."""
     for factory in _all_strategy_factories():
-        strategy = factory(seed=555)
+        strategy = factory(555)
 
         packets = []
         with ThreadPoolExecutor(max_workers=4) as executor:
@@ -120,7 +120,7 @@ def test_all_strategies_are_thread_safe() -> None:
 
 
 def test_totally_random_bytes_strategy_thread_safety() -> None:
-    """Specific test: random bytes strategy should produce valid-length packets under concurrent load."""
+    """Test: random bytes strategy should handle concurrent load without state corruption."""
     strategy = TotallyRandomBytesStrategy(min_length=16, max_length=20, seed=888)
 
     packets = []
@@ -136,7 +136,7 @@ def test_totally_random_bytes_strategy_thread_safety() -> None:
 
 
 def test_continuation_state_mutation_thread_safety() -> None:
-    """Specific test: continuation mutations should handle concurrent calls without state corruption."""
+    """Test: continuation mutations should handle concurrent calls safely."""
     strategy = ContinuationStateByteMutationStrategy(
         valid_continuation_states=[b"\x01\x02\x03", b"\xAA\xBB"],
         seed=777,
