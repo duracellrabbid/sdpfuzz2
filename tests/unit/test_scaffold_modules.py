@@ -97,10 +97,6 @@ def test_placeholder_components_behave_as_scaffolded() -> None:
 
     with pytest.raises(NotImplementedError):
         FuzzRunner().run()
-    with pytest.raises(NotImplementedError):
-        WorkerScheduler().start()
-    with pytest.raises(NotImplementedError):
-        FuzzWorker().run()
 
 
 def test_session_and_config_defaults() -> None:

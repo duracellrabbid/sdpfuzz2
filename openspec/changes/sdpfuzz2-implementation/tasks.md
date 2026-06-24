@@ -67,17 +67,17 @@
 
 ## 6. Concurrent Worker Pool and Scheduling
 
-- [ ] 6.1 Write tests for worker lifecycle (start, send, receive, stop)
-- [ ] 6.2 Implement Worker async task class with packet send/receive loop
-- [ ] 6.3 Implement WorkerPool with configurable concurrency (N workers)
-- [ ] 6.4 Implement bounded request queue with configurable size
-- [ ] 6.5 Implement monotonic packet indexing for deterministic log correlation
-- [ ] 6.6 Implement response mapping from packets to requests using packet_index
-- [ ] 6.7 Write tests for out-of-order response handling
-- [ ] 6.8 Implement inter-packet delay and rate limiting
-- [ ] 6.9 Implement graceful worker shutdown with timeout
-- [ ] 6.10 Write concurrency tests with deterministic fakes (no race conditions)
-- [ ] 6.11 Verify workers safely run in parallel without memory safety issues
+- [x] 6.1 Write tests for worker lifecycle (start, send, receive, stop)
+- [x] 6.2 Implement Worker async task class with packet send/receive loop
+- [x] 6.3 Implement WorkerPool with configurable concurrency (N workers)
+- [x] 6.4 Implement bounded request queue with configurable size
+- [x] 6.5 Implement monotonic packet indexing for deterministic log correlation
+- [x] 6.6 Implement response mapping from packets to requests using packet_index
+- [x] 6.7 Write tests for out-of-order response handling
+- [x] 6.8 Implement inter-packet delay and rate limiting
+- [x] 6.9 Implement graceful worker shutdown with timeout
+- [x] 6.10 Write concurrency tests with deterministic fakes (no race conditions)
+- [x] 6.11 Verify workers safely run in parallel without memory safety issues
 
 ## 7. Runner Loop and Orchestration
 

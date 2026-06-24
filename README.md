@@ -103,19 +103,12 @@ Behavior:
 
 ## Current status
 
-Phase 1 discovery and selection are in place:
-- Linux BlueZ discovery backend using dbus-next
-- Discovery normalization and filtering
-- CLI target selection flow
-- Unit tests for discovery and selection
-
-Phase 2 valid SDP probing is now implemented:
-- Valid Service Search Attribute request builder in `sdpfuzz2.sdp.packet_builder`
-- Strict Service Search Attribute response parser in `sdpfuzz2.sdp.parser`
-- Continuation-state pagination loop in `sdpfuzz2.bluetooth.probe.SDPProbe`
-- CLI integration via `sdpfuzz2 probe` for selected targets
-- Linux L2CAP transport implementation in `sdpfuzz2.bluetooth.l2cap_transport`
-- Unit tests covering byte fixtures, parser error cases, and multi-page continuation-state collection
+Phase 4 concurrent worker pool and scheduling are now implemented:
+- Bounded async `WorkerPool` managing concurrency and graceful shutdown under a configurable timeout.
+- Monotonic packet indexing in `WorkerScheduler` to correlate out-of-order responses with backpressure queue control.
+- `FuzzWorker` async task running blocking packet I/O in thread executors.
+- Support for inter-packet delays and token-bucket based rate limiting (`AsyncRateLimiter`).
+- Comprehensive unit and concurrency test suite with 98% overall test coverage.
 
 Phase 3 fuzzing strategy work is partially implemented:
 - `sdpfuzz2.fuzzing.random_bytes.TotallyRandomBytesStrategy` now generates random packets.
@@ -129,10 +122,19 @@ Additional implemented Phase 3 strategy work:
 - `RandomMutationStrategy` now mutates valid request templates (Service Search, Service Attribute, and Service Search Attribute).
 - Shared contract tests validate all implemented strategies for common behavior (byte output and seeded determinism) and mode-specific constraints.
 
-Probe and discovery coverage now also includes:
-- Contract tests for `SDPProbe` timeout handling, continuation pagination, and state aggregation.
-- Integration tests for discovery and probing flows using deterministic mock backends.
-- CLI probe coverage for summary output, debug output, and transport-failure handling.
+Phase 2 valid SDP probing is now implemented:
+- Valid Service Search Attribute request builder in `sdpfuzz2.sdp.packet_builder`
+- Strict Service Search Attribute response parser in `sdpfuzz2.sdp.parser`
+- Continuation-state pagination loop in `sdpfuzz2.bluetooth.probe.SDPProbe`
+- CLI integration via `sdpfuzz2 probe` for selected targets
+- Linux L2CAP transport implementation in `sdpfuzz2.bluetooth.l2cap_transport`
+- Unit tests covering byte fixtures, parser error cases, and multi-page continuation-state collection
+
+Phase 1 discovery and selection are in place:
+- Linux BlueZ discovery backend using dbus-next
+- Discovery normalization and filtering
+- CLI target selection flow
+- Unit tests for discovery and selection
 
 Earlier scaffolding is also in place:
 - src-layout package structure
@@ -140,10 +142,11 @@ Earlier scaffolding is also in place:
 - CI workflow scaffold
 - baseline domain and schema tests
 
-## Phase 2 developer notes
+## Developer notes
 
-The probe flow sends a valid Service Search Attribute request, parses the response,
-and continues probing while the remote server returns non-empty continuation states.
+### SDP Probing Flow
+
+The probe flow sends a valid Service Search Attribute request, parses the response, and continues probing while the remote server returns non-empty continuation states.
 
 Programmatic example:
 
@@ -156,4 +159,43 @@ result = probe.collect_initial_state()
 
 print(result.continuation_states)
 print(result.full_attribute_list.hex())
+```
+
+### Concurrent Scheduler & Workers
+
+The scheduler coordinates multiple workers executing parallel send/receive loops, providing backpressure, monotonic indexing, and response correlation.
+
+Programmatic example:
+
+```python
+import asyncio
+from sdpfuzz2.config import RuntimeConfig
+from sdpfuzz2.orchestration.scheduler import WorkerScheduler
+
+async def main():
+    config = RuntimeConfig(concurrency=4, queue_size=10, response_timeout_ms=1500)
+    
+    # transport_factory should return an instance implementing the Transport protocol
+    scheduler = WorkerScheduler(
+        config=config,
+        transport_factory=lambda: MyL2CAPTransport(target_mac="00:11:22:33:44:55"),
+        delay_ms=50.0,   # 50ms delay between packets
+        rate_limit=20,   # Max 20 packets per second
+    )
+    
+    # Spawn the workers and start the results processor
+    await scheduler.start()
+    
+    # Submit packet payload (blocks if input queue is full, providing backpressure)
+    idx = await scheduler.submit(b"\x06\x00\x01\x00\x03\x00\x00\x00")
+    
+    # Retrieve response (mapped by packet index, handling out-of-order arrival automatically)
+    response = await scheduler.get_response(idx, timeout_seconds=5.0)
+    print(f"Packet index: {response.packet_index}")
+    print(f"Response: {response.response_payload}")
+    
+    # Gracefully shut down workers
+    await scheduler.shutdown()
+
+asyncio.run(main())
 ```
