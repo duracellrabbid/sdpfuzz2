@@ -2,14 +2,12 @@
 
 import asyncio
 
-
 from sdpfuzz2.bluetooth.crash_detector import CrashDetector
 from sdpfuzz2.bluetooth.transport import Transport
 from sdpfuzz2.config import RuntimeConfig
 from sdpfuzz2.fuzzing.random_bytes import TotallyRandomBytesStrategy
 from sdpfuzz2.orchestration.runner import FuzzRunner, FuzzRunnerConfig
 from sdpfuzz2.orchestration.session import SessionState
-
 
 # ---------------------------------------------------------------------------
 # Helpers

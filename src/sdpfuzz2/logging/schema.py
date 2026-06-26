@@ -8,6 +8,14 @@ _HEX_RE = re.compile(r"^[0-9a-fA-F]*$")
 _MAC_RE = re.compile(r"^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$")
 
 
+class SummaryCounters(BaseModel):
+    """Counters summarizing the fuzzer session execution."""
+
+    packets_sent: int = 0
+    packets_received: int = 0
+    crashes_detected: int = 0
+
+
 class RequestResponseLog(BaseModel):
     """One request/response observation in a fuzzing session."""
 
@@ -16,6 +24,9 @@ class RequestResponseLog(BaseModel):
     request_packet_hex: str
     response_packet_hex: str = ""
     crash: int = Field(default=0, ge=0, le=1)
+    packet_index: int | None = None
+    worker_id: int | None = None
+    in_flight_at_send: int | None = None
 
     @field_validator("request_packet_hex", "response_packet_hex")
     @classmethod
@@ -38,6 +49,10 @@ class FuzzingSession(BaseModel):
     device_mac_address: str
     start_time: str
     logs: list[RequestResponseLog]
+    fuzz_mode: str | None = None
+    run_id: str | None = None
+    end_time: str | None = None
+    summary_counters: SummaryCounters | None = None
 
     @field_validator("device_mac_address")
     @classmethod
@@ -58,4 +73,5 @@ __all__ = [
     "RequestResponseLog",
     "PacketLogEntry",
     "RunLog",
+    "SummaryCounters",
 ]

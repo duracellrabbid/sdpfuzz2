@@ -93,16 +93,16 @@
 
 ## 8. JSON Logging and Artifact Writing
 
-- [ ] 8.1 Write unit tests for RunLogger with Pydantic schema validation
+- [x] 8.1 Write unit tests for RunLogger with Pydantic schema validation
 - [x] 8.2 Implement RunLogger with incremental log entry writing
-- [ ] 8.3 Implement JSON serialization with hex-encoded packet bytes
-- [ ] 8.4 Implement periodic flush (configurable interval)
-- [ ] 8.5 Implement atomic file writes (temporary file + rename)
-- [ ] 8.6 Implement crash-safe log recovery after unexpected termination
-- [ ] 8.7 Add optional metadata fields (fuzz_mode, worker_id, run_id, in_flight_at_send)
-- [ ] 8.8 Write tests for log schema validation
-- [ ] 8.9 Write tests for out-of-order entry logging with packet_index correlation
-- [ ] 8.10 Verify logs remain valid even after crash or forced termination
+- [x] 8.3 Implement JSON serialization with hex-encoded packet bytes
+- [x] 8.4 Implement periodic flush (configurable interval)
+- [x] 8.5 Implement atomic file writes (temporary file + rename)
+- [x] 8.6 Implement crash-safe log recovery after unexpected termination
+- [x] 8.7 Add optional metadata fields (fuzz_mode, worker_id, run_id, in_flight_at_send)
+- [x] 8.8 Write tests for log schema validation
+- [x] 8.9 Write tests for out-of-order entry logging with packet_index correlation
+- [x] 8.10 Verify logs remain valid even after crash or forced termination
 
 ## 9. CLI Interface and User Workflows
 

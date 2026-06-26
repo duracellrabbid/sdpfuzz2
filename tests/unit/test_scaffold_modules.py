@@ -1,4 +1,3 @@
-import pytest
 
 from sdpfuzz2.bluetooth.crash_detector import CrashDetector
 from sdpfuzz2.bluetooth.l2cap_transport import L2CAPTransport

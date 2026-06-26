@@ -246,8 +246,8 @@ def test_async_rate_limiter() -> None:
 def test_worker_delay() -> None:
     async def run_test() -> None:
         transport = FakeTransport(responses=[b"r"])
-        input_queue = asyncio.Queue()
-        output_queue = asyncio.Queue()
+        input_queue: asyncio.Queue[FuzzRequest] = asyncio.Queue()
+        output_queue: asyncio.Queue[FuzzResponse] = asyncio.Queue()
         stop_event = asyncio.Event()
 
         worker = FuzzWorker(
@@ -354,8 +354,8 @@ def test_worker_close_transport_error() -> None:
                 raise RuntimeError("Failed to close")
 
         transport = BadTransport()
-        input_queue = asyncio.Queue()
-        output_queue = asyncio.Queue()
+        input_queue: asyncio.Queue[FuzzRequest] = asyncio.Queue()
+        output_queue: asyncio.Queue[FuzzResponse] = asyncio.Queue()
         stop_event = asyncio.Event()
 
         worker = FuzzWorker(
@@ -376,8 +376,8 @@ def test_worker_close_transport_error() -> None:
 def test_worker_cancel_during_dequeue() -> None:
     async def run_test() -> None:
         transport = FakeTransport()
-        input_queue = asyncio.Queue()
-        output_queue = asyncio.Queue()
+        input_queue: asyncio.Queue[FuzzRequest] = asyncio.Queue()
+        output_queue: asyncio.Queue[FuzzResponse] = asyncio.Queue()
         stop_event = asyncio.Event()
 
         worker = FuzzWorker(
@@ -433,8 +433,8 @@ def test_scheduler_shutdown_results_timeout() -> None:
 
 def test_worker_pool_shutdown_timeout() -> None:
     async def run_test() -> None:
-        input_queue = asyncio.Queue()
-        output_queue = asyncio.Queue()
+        input_queue: asyncio.Queue[FuzzRequest] = asyncio.Queue()
+        output_queue: asyncio.Queue[FuzzResponse] = asyncio.Queue()
         stop_event = asyncio.Event()
         pool = WorkerPool(
             concurrency=1,
@@ -447,7 +447,8 @@ def test_worker_pool_shutdown_timeout() -> None:
 
         # Mock the worker task to sleep indefinitely
         async def slow_worker() -> None:
-            # Append a new task to pool._tasks that is NOT part of the gather, so it's not cancelled by gather.
+            # Append a new task to pool._tasks that is NOT part of the gather,
+            # so it's not cancelled by gather.
             pool._tasks.append(asyncio.create_task(asyncio.sleep(5)))
             await asyncio.sleep(5)
 
@@ -481,6 +482,7 @@ def test_scheduler_results_task_cancellation() -> None:
         # Allow the results task to start and enter its loop/wait state
         await asyncio.sleep(0.01)
         # Cancel the results task directly to trigger CancelledError branch (scheduler.py:71-72)
+        assert scheduler._results_task is not None
         scheduler._results_task.cancel()
         # Allow task loop to run and execute the cancellation cleanup
         await asyncio.sleep(0.01)
@@ -492,8 +494,8 @@ def test_scheduler_results_task_cancellation() -> None:
 def test_worker_shutdown_while_delayed() -> None:
     async def run_test() -> None:
         transport = FakeTransport()
-        input_queue = asyncio.Queue()
-        output_queue = asyncio.Queue()
+        input_queue: asyncio.Queue[FuzzRequest] = asyncio.Queue()
+        output_queue: asyncio.Queue[FuzzResponse] = asyncio.Queue()
         stop_event = asyncio.Event()
 
         # worker with 100ms delay
@@ -534,4 +536,3 @@ def test_worker_pool_shutdown_not_started() -> None:
         await pool.shutdown()
 
     asyncio.run(run_test())
-

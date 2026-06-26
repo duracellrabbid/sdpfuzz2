@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 
 import structlog
 
-from sdpfuzz2.bluetooth.crash_detector import CrashConfidence, CrashDetector, ErrorType
+from sdpfuzz2.bluetooth.crash_detector import CrashDetector, CrashEvent, ErrorType
 from sdpfuzz2.bluetooth.transport import Transport
 from sdpfuzz2.config import RuntimeConfig
 from sdpfuzz2.fuzzing.base import FuzzingStrategy
@@ -109,6 +109,7 @@ class FuzzRunner:
     async def _loop(self) -> None:
         """Inner fuzzing loop — submits packets and processes responses."""
         consecutive_errors = 0
+        assert self._scheduler is not None
 
         while not self._should_stop():
             # Obtain the next packet from the strategy
@@ -120,27 +121,38 @@ class FuzzRunner:
 
             # Submit to the scheduler (blocks if queue is full — backpressure)
             try:
-                packet_index = await self._scheduler.submit(payload)  # type: ignore[union-attr]
+                packet_index = await self._scheduler.submit(payload)
             except RuntimeError:
                 # Scheduler was stopped concurrently
                 break
 
             self.stats.packets_sent += 1
 
+            if self.run_logger:
+                self.run_logger.log_request(
+                    packet_index=packet_index,
+                    payload=payload,
+                    in_flight_at_send=self._scheduler.in_flight_count,
+                )
+
             # Await the response with a generous timeout to keep the loop moving
             response_timeout = self.config.runtime_config.response_timeout_ms / 1000.0 + 1.0
             try:
-                resp = await self._scheduler.get_response(  # type: ignore[union-attr]
+                resp = await self._scheduler.get_response(
                     packet_index, timeout_seconds=response_timeout
                 )
-            except (asyncio.TimeoutError, asyncio.CancelledError, Exception) as exc:
+            except (TimeoutError, asyncio.CancelledError, Exception) as exc:
                 self.stats.errors += 1
                 consecutive_errors += 1
                 logger.warning("Response retrieval error", error=str(exc))
-                if (
-                    self.config.max_errors > 0
-                    and consecutive_errors >= self.config.max_errors
-                ):
+                if self.run_logger:
+                    self.run_logger.log_response(
+                        packet_index=packet_index,
+                        response_payload=None,
+                        crash=0,
+                        worker_id=None,
+                    )
+                if self.config.max_errors > 0 and consecutive_errors >= self.config.max_errors:
                     logger.error(
                         "Max consecutive errors reached, stopping",
                         max_errors=self.config.max_errors,
@@ -153,6 +165,14 @@ class FuzzRunner:
                 self.stats.errors += 1
                 consecutive_errors += 1
                 crash_event = self._handle_response_error(resp.error, resp.worker_id or 0)
+                is_crash = 1 if crash_event else 0
+                if self.run_logger:
+                    self.run_logger.log_response(
+                        packet_index=packet_index,
+                        response_payload=None,
+                        crash=is_crash,
+                        worker_id=resp.worker_id,
+                    )
                 if crash_event and self.config.stop_on_crash:
                     self.stats.crashes_detected += 1
                     logger.warning(
@@ -161,10 +181,7 @@ class FuzzRunner:
                         reason=crash_event.reason,
                     )
                     break
-                if (
-                    self.config.max_errors > 0
-                    and consecutive_errors >= self.config.max_errors
-                ):
+                if self.config.max_errors > 0 and consecutive_errors >= self.config.max_errors:
                     logger.error(
                         "Max consecutive errors reached, stopping",
                         max_errors=self.config.max_errors,
@@ -175,12 +192,16 @@ class FuzzRunner:
                 self.stats.packets_received += 1
                 if resp.worker_id is not None:
                     self.crash_detector.record_success(resp.worker_id)
+                if self.run_logger:
+                    self.run_logger.log_response(
+                        packet_index=packet_index,
+                        response_payload=resp.response_payload,
+                        crash=0,
+                        worker_id=resp.worker_id,
+                    )
 
             # Check packet cap
-            if (
-                self.config.max_packets > 0
-                and self.stats.packets_sent >= self.config.max_packets
-            ):
+            if self.config.max_packets > 0 and self.stats.packets_sent >= self.config.max_packets:
                 logger.info(
                     "Packet limit reached, stopping",
                     packets_sent=self.stats.packets_sent,
@@ -189,7 +210,7 @@ class FuzzRunner:
 
     def _handle_response_error(
         self, error: Exception, worker_id: int
-    ) -> "object":
+    ) -> CrashEvent | None:
         """Classify a transport error and forward to the crash detector."""
         err_str = str(error).lower()
         if "timed out" in err_str or "timeout" in err_str:
@@ -214,6 +235,8 @@ class FuzzRunner:
         """Gracefully stop the scheduler and record final statistics."""
         self.state = SessionState.STOPPED
         self.stats.stop()
+        if self.run_logger:
+            self.run_logger.finalize()
         if self._scheduler is not None:
             await self._scheduler.shutdown()
             self._scheduler = None

@@ -13,3 +13,4 @@ class Transport(Protocol):
     def receive(self, timeout_ms: int) -> bytes:
         """Receive a response payload."""
         ...
+

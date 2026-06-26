@@ -2,6 +2,7 @@
 
 import asyncio
 import time
+from pathlib import Path
 
 import pytest
 
@@ -11,7 +12,6 @@ from sdpfuzz2.config import RuntimeConfig
 from sdpfuzz2.fuzzing.base import FuzzingStrategy
 from sdpfuzz2.orchestration.runner import FuzzRunner, FuzzRunnerConfig
 from sdpfuzz2.orchestration.session import RunStatistics, SessionState
-
 
 # ---------------------------------------------------------------------------
 # Fakes / stubs
@@ -169,7 +169,7 @@ def test_runner_stopped_state_after_run() -> None:
         )
         assert runner.state == SessionState.IDLE
         await runner.run()
-        assert runner.state == SessionState.STOPPED
+        assert runner.state.value == SessionState.STOPPED.value
 
     asyncio.run(run_test())
 
@@ -402,14 +402,14 @@ def test_runner_signal_handler_methods_callable() -> None:
         strategy=CountingStrategy(),
         transport_factory=FakeTransport,
     )
-    assert not runner._interrupted
+    assert not getattr(runner, "_interrupted")  # noqa: B009
 
     runner._on_interrupt(2, None)
-    assert runner._interrupted
+    assert getattr(runner, "_interrupted")  # noqa: B009
 
     runner._interrupted = False
     runner._on_interrupt_async()
-    assert runner._interrupted
+    assert getattr(runner, "_interrupted")  # noqa: B009
 
 
 def test_runner_install_restore_signal_handlers_no_loop() -> None:
@@ -475,7 +475,6 @@ def test_runner_run_propagates_unhandled_exception() -> None:
     asyncio.run(run_test())
 
 
-
 def test_runner_scheduler_submit_runtime_error() -> None:
     """When scheduler raises RuntimeError on submit (already stopped), loop exits."""
 
@@ -494,7 +493,9 @@ def test_runner_scheduler_submit_runtime_error() -> None:
             async def submit(self, payload: bytes) -> int:
                 raise RuntimeError("Scheduler is stopped")
 
-            async def get_response(self, packet_index: int, timeout_seconds: float | None = None) -> object:
+            async def get_response(
+                self, packet_index: int, timeout_seconds: float | None = None
+            ) -> object:
                 raise asyncio.CancelledError
 
             async def shutdown(self, timeout_seconds: float = 5.0) -> None:
@@ -531,7 +532,9 @@ def test_runner_get_response_cancelled_future_path() -> None:
                 call_count += 1
                 return call_count
 
-            async def get_response(self, packet_index: int, timeout_seconds: float | None = None) -> object:
+            async def get_response(
+                self, packet_index: int, timeout_seconds: float | None = None
+            ) -> object:
                 raise asyncio.CancelledError("test cancelled")
 
             async def shutdown(self, timeout_seconds: float = 5.0) -> None:
@@ -569,12 +572,16 @@ def test_runner_get_response_continue_path() -> None:
                 call_seq[0] += 1
                 return call_seq[0]
 
-            async def get_response(self, packet_index: int, timeout_seconds: float | None = None) -> object:
+            async def get_response(
+                self, packet_index: int, timeout_seconds: float | None = None
+            ) -> object:
                 if call_seq[0] == 1:
                     # First call raises — should hit 'continue'
                     raise asyncio.CancelledError("first error")
                 # Second call succeeds
-                return FuzzResponse(packet_index=packet_index, request_payload=b"", response_payload=b"\x07")
+                return FuzzResponse(
+                    packet_index=packet_index, request_payload=b"", response_payload=b"\x07"
+                )
 
             async def shutdown(self, timeout_seconds: float = 5.0) -> None:
                 pass
@@ -586,3 +593,100 @@ def test_runner_get_response_continue_path() -> None:
 
     asyncio.run(run_test())
 
+
+def test_runner_with_logger(tmp_path: Path) -> None:
+    """Verify that FuzzRunner correctly calls RunLogger methods during execution."""
+    import json
+
+    from sdpfuzz2.logging.run_logger import RunLogger
+    from sdpfuzz2.orchestration.workers import FuzzResponse
+
+    async def run_test() -> None:
+        output_file = tmp_path / "fuzz-run.json"
+        logger = RunLogger(
+            output_file, device_name="Test Device", device_mac_address="00:11:22:33:44:55"
+        )
+
+        runner = FuzzRunner(
+            strategy=CountingStrategy(),
+            transport_factory=FakeTransport,
+            run_logger=logger,
+            config=FuzzRunnerConfig(
+                runtime_config=RuntimeConfig(concurrency=1, response_timeout_ms=50),
+                max_errors=3,
+                stop_on_crash=False,
+                max_packets=3,
+            ),
+        )
+
+        call_seq = [0]
+
+        class CustomScheduler:
+            @property
+            def in_flight_count(self) -> int:
+                return 1
+
+            async def submit(self, payload: bytes) -> int:
+                call_seq[0] += 1
+                return call_seq[0]
+
+            async def get_response(
+                self, packet_index: int, timeout_seconds: float | None = None
+            ) -> object:
+                if packet_index == 1:
+                    # Packet 1: Success
+                    return FuzzResponse(
+                        packet_index=packet_index,
+                        request_payload=b"\x01",
+                        response_payload=b"\x02",
+                        worker_id=0,
+                    )
+                elif packet_index == 2:
+                    # Packet 2: Refused error (recorded as connection refused error)
+                    return FuzzResponse(
+                        packet_index=packet_index,
+                        request_payload=b"\x03",
+                        error=ConnectionRefusedError("refused"),
+                        worker_id=0,
+                    )
+                elif packet_index == 3:
+                    # Packet 3: Timeout error (raised in get_response)
+                    raise TimeoutError("timeout")
+                else:
+                    # Packet 4: Success to allow the loop to proceed past
+                    # continue and exit via max_packets
+                    return FuzzResponse(
+                        packet_index=packet_index,
+                        request_payload=b"\x01",
+                        response_payload=b"\x02",
+                        worker_id=0,
+                    )
+
+            async def shutdown(self, timeout_seconds: float = 5.0) -> None:
+                pass
+
+        runner._scheduler = CustomScheduler()  # type: ignore[assignment]
+        await runner._loop()
+        await runner._shutdown()
+
+        # Check that the log is written, validated, and finalized
+        assert output_file.exists()
+        parsed = json.loads(output_file.read_text(encoding="utf-8"))
+        assert parsed["device_mac_address"] == "00:11:22:33:44:55"
+        assert parsed["summary_counters"]["packets_sent"] == 4
+        assert len(parsed["logs"]) == 4
+        # Packet 1 (Success)
+        assert parsed["logs"][0]["packet_index"] == 1
+        assert parsed["logs"][0]["response_packet_hex"] == "02"
+        assert parsed["logs"][0]["crash"] == 0
+        # Packet 2 (Error)
+        assert parsed["logs"][1]["packet_index"] == 2
+        assert parsed["logs"][1]["response_packet_hex"] == ""
+        # Packet 3 (Timeout)
+        assert parsed["logs"][2]["packet_index"] == 3
+        assert parsed["logs"][2]["response_packet_hex"] == ""
+        # Packet 4 (Success after timeout)
+        assert parsed["logs"][3]["packet_index"] == 4
+        assert parsed["logs"][3]["response_packet_hex"] == "02"
+
+    asyncio.run(run_test())

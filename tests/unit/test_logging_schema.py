@@ -55,3 +55,41 @@ def test_log_entry_is_compatible_alias() -> None:
     entry = LogEntry(request_packet_hex="ABCD", response_packet_hex="", crash=1)
 
     assert entry.crash == 1
+
+
+def test_schema_supports_optional_fields() -> None:
+    entry = LogEntry(
+        request_packet_hex="A1B2",
+        response_packet_hex="C3D4",
+        crash=0,
+        packet_index=42,
+        worker_id=2,
+        in_flight_at_send=5,
+    )
+    assert entry.packet_index == 42
+    assert entry.worker_id == 2
+    assert entry.in_flight_at_send == 5
+
+
+def test_fuzzing_session_supports_metadata_and_counters() -> None:
+    from sdpfuzz2.logging.schema import SummaryCounters
+
+    counters = SummaryCounters(packets_sent=10, packets_received=8, crashes_detected=1)
+    session = FuzzingSession(
+        device_name="Target Device",
+        device_mac_address="AA:BB:CC:DD:EE:FF",
+        start_time="2026-06-26T12:00:00Z",
+        logs=[],
+        fuzz_mode="random-bytes",
+        run_id="session-12345",
+        end_time="2026-06-26T12:05:00Z",
+        summary_counters=counters,
+    )
+
+    assert session.fuzz_mode == "random-bytes"
+    assert session.run_id == "session-12345"
+    assert session.end_time == "2026-06-26T12:05:00Z"
+    assert session.summary_counters is not None
+    assert session.summary_counters.packets_sent == 10
+    assert session.summary_counters.packets_received == 8
+    assert session.summary_counters.crashes_detected == 1

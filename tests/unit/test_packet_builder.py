@@ -3,13 +3,13 @@
 import pytest
 
 from sdpfuzz2.sdp.packet_builder import (
-    encode_uuid,
+    build_attribute_id_list,
+    build_de_sequence,
+    build_service_search_attribute_request,
+    build_service_search_pattern,
     encode_attribute_id,
     encode_attribute_range,
-    build_de_sequence,
-    build_service_search_pattern,
-    build_attribute_id_list,
-    build_service_search_attribute_request,
+    encode_uuid,
 )
 
 

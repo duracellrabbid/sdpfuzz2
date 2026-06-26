@@ -99,6 +99,11 @@ class WorkerScheduler:
             return await asyncio.wait_for(asyncio.shield(fut), timeout=timeout_seconds)
         return await fut
 
+    @property
+    def in_flight_count(self) -> int:
+        """Return the number of requests currently in flight (submitted but not completed)."""
+        return sum(1 for fut in self._futures.values() if not fut.done())
+
     async def shutdown(self, timeout_seconds: float = 5.0) -> None:
         """Gracefully shut down the worker pool and results processing task."""
         self.stop_event.set()

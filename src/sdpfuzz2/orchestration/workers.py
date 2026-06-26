@@ -149,7 +149,7 @@ class FuzzWorker:
         finally:
             logger.info("Worker stopping, closing transport", worker_id=self.worker_id)
             try:
-                await asyncio.to_thread(self.transport.close)
+                await asyncio.to_thread(self.transport.close)  # type: ignore[attr-defined]
             except Exception as e:
                 logger.warning(
                     "Error closing worker transport",
