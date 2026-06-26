@@ -13,9 +13,7 @@ from sdpfuzz2.fuzzing.random_bytes import TotallyRandomBytesStrategy
 from sdpfuzz2.fuzzing.random_mutation import RandomMutationStrategy
 from sdpfuzz2.logging.schema import PacketLogEntry, RunLog
 from sdpfuzz2.orchestration.runner import FuzzRunner
-from sdpfuzz2.orchestration.scheduler import WorkerScheduler
 from sdpfuzz2.orchestration.session import FuzzSession
-from sdpfuzz2.orchestration.workers import FuzzWorker
 from sdpfuzz2.sdp.continuation import mutate_continuation_state
 from sdpfuzz2.sdp.packet_builder import build_service_search_attribute_request
 from sdpfuzz2.sdp.parser import parse_response
@@ -95,8 +93,12 @@ def test_placeholder_components_behave_as_scaffolded() -> None:
     assert build_service_search_attribute_request().startswith(b"\x06")
     assert parse_response(b"\x07\x00\x01\x00\x03\x00\x00\x00")["has_more"] is False
 
-    with pytest.raises(NotImplementedError):
-        FuzzRunner().run()
+    # FuzzRunner is now fully implemented and requires strategy + transport_factory
+    import inspect
+
+    sig = inspect.signature(FuzzRunner.__init__)
+    assert "strategy" in sig.parameters
+    assert "transport_factory" in sig.parameters
 
 
 def test_session_and_config_defaults() -> None:

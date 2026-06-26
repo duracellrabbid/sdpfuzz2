@@ -1,18 +1,18 @@
 import asyncio
 import time
-import pytest
-from typing import Callable
 
+import pytest
+
+from sdpfuzz2.bluetooth.transport import Transport
 from sdpfuzz2.config import RuntimeConfig
+from sdpfuzz2.orchestration.scheduler import WorkerScheduler
 from sdpfuzz2.orchestration.workers import (
-    FuzzWorker,
+    AsyncRateLimiter,
     FuzzRequest,
     FuzzResponse,
+    FuzzWorker,
     WorkerPool,
-    AsyncRateLimiter,
 )
-from sdpfuzz2.orchestration.scheduler import WorkerScheduler
-from sdpfuzz2.bluetooth.transport import Transport
 
 
 class FakeTransport:
@@ -195,7 +195,7 @@ def test_monotonic_packet_indexing() -> None:
 def test_response_mapping_and_out_of_order() -> None:
     async def run_test() -> None:
         config = RuntimeConfig(concurrency=2, queue_size=5)
-        
+
         # We can use specific transports
         transports = [
             FakeTransport(responses=[b"resp1"], delay=0.2),  # slower
@@ -231,12 +231,12 @@ def test_response_mapping_and_out_of_order() -> None:
 def test_async_rate_limiter() -> None:
     async def run_test() -> None:
         limiter = AsyncRateLimiter(rate_limit=10.0)
-        
+
         start_time = asyncio.get_running_loop().time()
         for _ in range(5):
             await limiter.acquire()
         end_time = asyncio.get_running_loop().time()
-        
+
         elapsed = end_time - start_time
         assert elapsed >= 0.35
 
@@ -260,12 +260,12 @@ def test_worker_delay() -> None:
         )
 
         await input_queue.put(FuzzRequest(packet_index=1, payload=b"q"))
-        
+
         start_time = asyncio.get_running_loop().time()
         task = asyncio.create_task(worker.run())
         await output_queue.get()
         end_time = asyncio.get_running_loop().time()
-        
+
         elapsed = end_time - start_time
         assert elapsed >= 0.18
 
@@ -278,23 +278,23 @@ def test_worker_delay() -> None:
 def test_graceful_worker_shutdown_with_timeout() -> None:
     async def run_test() -> None:
         transport = FakeTransport(responses=[b"r"], delay=2.0)
-        
+
         scheduler = WorkerScheduler(
             config=RuntimeConfig(concurrency=1, response_timeout_ms=5000),
             transport_factory=lambda: transport,
         )
         await scheduler.start()
-        
+
         idx = await scheduler.submit(b"payload")
         await asyncio.sleep(0.05)
-        
+
         # Shutdown with a very small timeout. It should cancel the task.
         start_time = asyncio.get_running_loop().time()
         await scheduler.shutdown(timeout_seconds=0.1)
         end_time = asyncio.get_running_loop().time()
-        
+
         assert end_time - start_time < 0.5
-        
+
         with pytest.raises(asyncio.CancelledError):
             await scheduler.get_response(idx)
 
@@ -419,9 +419,11 @@ def test_scheduler_shutdown_results_timeout() -> None:
     async def run_test() -> None:
         scheduler = WorkerScheduler(transport_factory=FakeTransport)
         await scheduler.start()
+
         # Mock results task to run indefinitely
         async def slow_task() -> None:
             await asyncio.sleep(5)
+
         scheduler._results_task = asyncio.create_task(slow_task())
         # Call shutdown with tiny timeout to trigger TimeoutError branch
         await scheduler.shutdown(timeout_seconds=0.01)
@@ -442,9 +444,13 @@ def test_worker_pool_shutdown_timeout() -> None:
             stop_event=stop_event,
         )
         await pool.start()
+
         # Mock the worker task to sleep indefinitely
         async def slow_worker() -> None:
+            # Append a new task to pool._tasks that is NOT part of the gather, so it's not cancelled by gather.
+            pool._tasks.append(asyncio.create_task(asyncio.sleep(5)))
             await asyncio.sleep(5)
+
         pool._tasks = [asyncio.create_task(slow_worker())]
         # Call shutdown with tiny timeout to trigger TimeoutError branch
         await pool.shutdown(timeout_seconds=0.01)
@@ -467,4 +473,65 @@ def test_rate_limiter_active_in_worker() -> None:
 
     asyncio.run(run_test())
 
+
+def test_scheduler_results_task_cancellation() -> None:
+    async def run_test() -> None:
+        scheduler = WorkerScheduler(transport_factory=FakeTransport)
+        await scheduler.start()
+        # Allow the results task to start and enter its loop/wait state
+        await asyncio.sleep(0.01)
+        # Cancel the results task directly to trigger CancelledError branch (scheduler.py:71-72)
+        scheduler._results_task.cancel()
+        # Allow task loop to run and execute the cancellation cleanup
+        await asyncio.sleep(0.01)
+        await scheduler.shutdown()
+
+    asyncio.run(run_test())
+
+
+def test_worker_shutdown_while_delayed() -> None:
+    async def run_test() -> None:
+        transport = FakeTransport()
+        input_queue = asyncio.Queue()
+        output_queue = asyncio.Queue()
+        stop_event = asyncio.Event()
+
+        # worker with 100ms delay
+        worker = FuzzWorker(
+            worker_id=1,
+            transport=transport,
+            input_queue=input_queue,
+            output_queue=output_queue,
+            stop_event=stop_event,
+            delay_ms=100.0,
+        )
+
+        task = asyncio.create_task(worker.run())
+        # submit a request
+        await input_queue.put(FuzzRequest(packet_index=1, payload=b"test"))
+        # yield control to let worker dequeue the request and go to sleep/delay
+        await asyncio.sleep(0.02)
+        # set stop event while worker is in the delay sleep
+        stop_event.set()
+        # wait for worker to wake up and exit cleanly
+        await task
+        # check that input queue task was marked done and worker exited
+        assert input_queue.empty()
+
+    asyncio.run(run_test())
+
+
+def test_worker_pool_shutdown_not_started() -> None:
+    async def run_test() -> None:
+        pool = WorkerPool(
+            concurrency=1,
+            transport_factory=FakeTransport,
+            input_queue=asyncio.Queue(),
+            output_queue=asyncio.Queue(),
+            stop_event=asyncio.Event(),
+        )
+        # WorkerPool shutdown when not started (workers.py:213)
+        await pool.shutdown()
+
+    asyncio.run(run_test())
 

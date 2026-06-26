@@ -81,15 +81,15 @@
 
 ## 7. Runner Loop and Orchestration
 
-- [ ] 7.1 Write tests for FuzzRunner with fake transport and crash detector
-- [ ] 7.2 Implement FuzzRunner main loop (worker coordination, crash checks, stop signal)
-- [ ] 7.3 Implement session management (start, run, pause, stop, resume)
-- [ ] 7.4 Implement statistics tracking (packets sent, received, timeouts, crashes)
-- [ ] 7.5 Implement exception handling and recovery from transient failures
-- [ ] 7.6 Write tests for runner lifecycle (setup, running, termination)
-- [ ] 7.7 Implement signal handling for user interruption (Ctrl+C)
-- [ ] 7.8 Write integration tests for runner with mock transport and crash detector
-- [ ] 7.9 Verify runner correctly orchestrates all components
+- [x] 7.1 Write tests for FuzzRunner with fake transport and crash detector
+- [x] 7.2 Implement FuzzRunner main loop (worker coordination, crash checks, stop signal)
+- [x] 7.3 Implement session management (start, run, pause, stop, resume)
+- [x] 7.4 Implement statistics tracking (packets sent, received, timeouts, crashes)
+- [x] 7.5 Implement exception handling and recovery from transient failures
+- [x] 7.6 Write tests for runner lifecycle (setup, running, termination)
+- [x] 7.7 Implement signal handling for user interruption (Ctrl+C)
+- [x] 7.8 Write integration tests for runner with mock transport and crash detector
+- [x] 7.9 Verify runner correctly orchestrates all components
 
 ## 8. JSON Logging and Artifact Writing
 

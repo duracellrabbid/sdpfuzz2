@@ -1,8 +1,8 @@
 """Worker lifecycle and execution."""
 
 import asyncio
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 import structlog
 
@@ -97,7 +97,7 @@ class FuzzWorker:
                 try:
                     # Non-blocking dequeue or wait with timeout to check stop_event
                     req = await asyncio.wait_for(self.input_queue.get(), timeout=0.1)
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     continue
                 except asyncio.CancelledError:
                     break

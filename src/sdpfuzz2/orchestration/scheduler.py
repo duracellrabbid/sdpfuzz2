@@ -52,7 +52,9 @@ class WorkerScheduler:
             response_timeout_ms=self.config.response_timeout_ms,
         )
         await self._pool.start()
-        self._results_task = asyncio.create_task(self._process_results(), name="SchedulerResultsProcessor")
+        self._results_task = asyncio.create_task(
+            self._process_results(), name="SchedulerResultsProcessor"
+        )
 
     async def _process_results(self) -> None:
         while not self.stop_event.is_set() or not self.results_queue.empty():
@@ -64,7 +66,7 @@ class WorkerScheduler:
                 if fut and not fut.done():
                     fut.set_result(resp)
                 self.results_queue.task_done()
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 continue
             except asyncio.CancelledError:
                 break
@@ -84,7 +86,9 @@ class WorkerScheduler:
         await self.input_queue.put(req)
         return idx
 
-    async def get_response(self, packet_index: int, timeout_seconds: float | None = None) -> FuzzResponse:
+    async def get_response(
+        self, packet_index: int, timeout_seconds: float | None = None
+    ) -> FuzzResponse:
         """Get the response for a given packet index, waiting if necessary."""
         if packet_index in self.responses:
             return self.responses[packet_index]
