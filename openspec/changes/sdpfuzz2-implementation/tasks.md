@@ -131,15 +131,15 @@
 ## 11. Documentation and Operational Hardening
 
 - [x] 11.1 Write README with project overview, dependencies, and quick start
-- [ ] 11.2 Write Kali setup runbook (permissions, adapter setup, BlueZ configuration)
-- [ ] 11.3 Write troubleshooting guide (adapter issues, timeout tuning, crash detection calibration)
-- [ ] 11.4 Document SDP protocol specifics and packet format for maintainability
-- [ ] 11.5 Write architecture documentation with module responsibilities
-- [ ] 11.6 Create contributing guide for new developers
-- [ ] 11.7 Add code examples for extending fuzzing strategies post-MVP
-- [ ] 11.8 Document log schema and how to analyze logs
-- [ ] 11.9 Verify documentation enables new contributor setup in <30 minutes
-- [ ] 11.10 Create changelog and version tags for release
+- [x] 11.2 Write Kali setup runbook (permissions, adapter setup, BlueZ configuration)
+- [x] 11.3 Write troubleshooting guide (adapter issues, timeout tuning, crash detection calibration)
+- [x] 11.4 Document SDP protocol specifics and packet format for maintainability
+- [x] 11.5 Write architecture documentation with module responsibilities
+- [x] 11.6 Create contributing guide for new developers
+- [x] 11.7 Add code examples for extending fuzzing strategies post-MVP
+- [x] 11.8 Document log schema and how to analyze logs
+- [x] 11.9 Verify documentation enables new contributor setup in <30 minutes
+- [x] 11.10 Create changelog and version tags for release
 
 ## 12. Coverage and Quality Assurance
 
