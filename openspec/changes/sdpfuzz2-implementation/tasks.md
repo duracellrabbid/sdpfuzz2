@@ -119,12 +119,12 @@
 
 ## 10. Integration Testing and E2E Validation
 
-- [ ] 10.1 Build minimal mock SDP server for repeatable integration tests
-- [ ] 10.2 Write integration tests for complete discovery → probe → fuzz → crash workflow
-- [ ] 10.3 Write integration tests for all four fuzzing modes
-- [ ] 10.4 Write integration tests for crash detection with simulated crash behavior
-- [ ] 10.5 Write integration tests for concurrent fuzzing with multiple workers
-- [ ] 10.6 Write integration tests for JSON log output and schema validation
+- [x] 10.1 Build minimal mock SDP server for repeatable integration tests
+- [x] 10.2 Write integration tests for complete discovery → probe → fuzz → crash workflow
+- [x] 10.3 Write integration tests for all four fuzzing modes
+- [x] 10.4 Write integration tests for crash detection with simulated crash behavior
+- [x] 10.5 Write integration tests for concurrent fuzzing with multiple workers
+- [x] 10.6 Write integration tests for JSON log output and schema validation
 - [ ] 10.7 Test on Kali Linux with real Bluetooth adapter (manual gated)
 - [ ] 10.8 Verify end-to-end reproducibility with seed-based runs
 
