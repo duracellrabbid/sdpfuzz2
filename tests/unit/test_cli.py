@@ -133,7 +133,7 @@ def test_probe_command_debug_flag_prints_probe_result_details(
         assert response_timeout_ms == 1500
         return ProbeResult(
             attribute_list_fragments=[b"\x35\x03\x09", b"\x00\x01"],
-            continuation_states=[b"\xAA\xBB"],
+            continuation_states=[b"\xaa\xbb"],
         )
 
     monkeypatch.setattr("sdpfuzz2.cli.DiscoveryService.discover", fake_discover)
@@ -181,4 +181,3 @@ def test_make_progress_table_zero_packets_sent() -> None:
     stats.packets_received = 0
     table = make_progress_table(stats, "random-bytes", "00:11:22:33:44:55", "RUNNING")
     assert table is not None
-

@@ -30,7 +30,7 @@ def _all_strategy_factories() -> list[StrategyFactory]:
         lambda seed: TotallyRandomBytesStrategy(min_length=16, max_length=20, seed=seed),
         lambda seed: ContinuationStateLengthMutationStrategy(seed=seed),
         lambda seed: ContinuationStateByteMutationStrategy(
-            valid_continuation_states=[b"\xAA\xBB", b"\x10\x20\x30"],
+            valid_continuation_states=[b"\xaa\xbb", b"\x10\x20\x30"],
             seed=seed,
         ),
         lambda seed: RandomMutationStrategy(seed=seed),
@@ -138,7 +138,7 @@ def test_totally_random_bytes_strategy_thread_safety() -> None:
 def test_continuation_state_mutation_thread_safety() -> None:
     """Test: continuation mutations should handle concurrent calls safely."""
     strategy = ContinuationStateByteMutationStrategy(
-        valid_continuation_states=[b"\x01\x02\x03", b"\xAA\xBB"],
+        valid_continuation_states=[b"\x01\x02\x03", b"\xaa\xbb"],
         seed=777,
     )
 

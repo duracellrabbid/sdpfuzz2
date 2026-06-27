@@ -67,7 +67,7 @@ def test_continuation_length_mutation_strategy_async_safety() -> None:
 def test_continuation_byte_mutation_strategy_async_safety() -> None:
     """Test: continuation byte mutation should handle concurrent tasks."""
     strategy = ContinuationStateByteMutationStrategy(
-        valid_continuation_states=[b"\x01\x02\x03", b"\xAA\xBB"],
+        valid_continuation_states=[b"\x01\x02\x03", b"\xaa\xbb"],
         seed=666,
     )
 
@@ -112,7 +112,7 @@ def test_mixed_strategy_concurrent_workload() -> None:
         strategies = [
             TotallyRandomBytesStrategy(seed=111),
             ContinuationStateLengthMutationStrategy(seed=222),
-            ContinuationStateByteMutationStrategy(valid_continuation_states=[b"\xAA"], seed=333),
+            ContinuationStateByteMutationStrategy(valid_continuation_states=[b"\xaa"], seed=333),
             RandomMutationStrategy(templates=templates, seed=444),
         ]
 

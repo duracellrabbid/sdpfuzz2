@@ -120,7 +120,7 @@ def test_probe_increments_transaction_id_on_continuation() -> None:
     """Contract: probe should increment transaction ID when continuing with continuation state."""
     transport = FakeTransport(
         responses=[
-            {"attribute_lists": b"P1", "continuation_state": b"\xAA"},
+            {"attribute_lists": b"P1", "continuation_state": b"\xaa"},
             {"attribute_lists": b"P2", "continuation_state": b""},
         ]
     )
@@ -146,7 +146,7 @@ def test_probe_respects_timeout_setting() -> None:
 def test_probe_raises_on_transport_timeout() -> None:
     """Contract: probe should propagate timeout errors from transport."""
     transport = FakeTransport(
-        responses=[{"attribute_lists": b"P1", "continuation_state": b"\xAA"}], timeout_after=2
+        responses=[{"attribute_lists": b"P1", "continuation_state": b"\xaa"}], timeout_after=2
     )
     probe = SDPProbe(transport, response_timeout_ms=1500)
 
@@ -190,7 +190,7 @@ def test_probe_result_full_attribute_list_concatenates_correctly() -> None:
     """Contract: ProbeResult.full_attribute_list should concatenate all fragments."""
     result = ProbeResult(
         attribute_list_fragments=[b"\x00\x01", b"\x02\x03", b"\x04"],
-        continuation_states=[b"\xAA"],
+        continuation_states=[b"\xaa"],
     )
 
     assert result.full_attribute_list == b"\x00\x01\x02\x03\x04"

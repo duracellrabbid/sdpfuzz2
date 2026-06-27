@@ -58,7 +58,7 @@ def test_parse_response_extracts_attribute_payload_and_continuation_state() -> N
     payload = _build_response(
         transaction_id=7,
         attribute_payload=b"\x35\x03\x09\x00\x01",
-        continuation_state=b"\xAA\xBB",
+        continuation_state=b"\xaa\xbb",
     )
 
     parsed = parse_response(payload)
@@ -66,7 +66,7 @@ def test_parse_response_extracts_attribute_payload_and_continuation_state() -> N
     assert parsed["transaction_id"] == 7
     assert parsed["attribute_lists_byte_count"] == 5
     assert parsed["attribute_lists"] == b"\x35\x03\x09\x00\x01"
-    assert parsed["continuation_state"] == b"\xAA\xBB"
+    assert parsed["continuation_state"] == b"\xaa\xbb"
     assert parsed["has_more"] is True
 
 
@@ -80,11 +80,11 @@ def test_parse_response_rejects_malformed_payloads() -> None:
     with pytest.raises(PacketParseError, match="parameter length mismatch"):
         parse_response(b"\x07\x00\x01\x00\x04\x00\x00\x00")
 
-    truncated_attr = b"\x07\x00\x01\x00\x04\x00\x02\xAA\x00"
+    truncated_attr = b"\x07\x00\x01\x00\x04\x00\x02\xaa\x00"
     with pytest.raises(PacketParseError, match="Truncated SDP attribute list payload"):
         parse_response(truncated_attr)
 
-    bad_cont_state = b"\x07\x00\x01\x00\x05\x00\x01\xAA\x02\xBB"
+    bad_cont_state = b"\x07\x00\x01\x00\x05\x00\x01\xaa\x02\xbb"
     with pytest.raises(PacketParseError, match="continuation state length mismatch"):
         parse_response(bad_cont_state)
 

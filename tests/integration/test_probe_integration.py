@@ -112,19 +112,19 @@ def test_probe_handles_realistic_service_discovery() -> None:
         [
             {
                 "attribute_bytes": (
-                    b"\x35\x0C"  # sequence of 12 bytes
+                    b"\x35\x0c"  # sequence of 12 bytes
                     b"\x09\x00\x00"  # attribute ID
                     b"\x35\x05"  # service list (5 bytes)
-                    b"\x19\x11\x0D"  # A2DP UUID
+                    b"\x19\x11\x0d"  # A2DP UUID
                 ),
                 "continuation_state": b"\x01",
             },
             {
                 "attribute_bytes": (
-                    b"\x35\x0C"
+                    b"\x35\x0c"
                     b"\x09\x00\x01"  # next attribute
                     b"\x35\x05"
-                    b"\x19\x11\x1F"  # HFP UUID
+                    b"\x19\x11\x1f"  # HFP UUID
                 ),
                 "continuation_state": b"",
             },
@@ -135,8 +135,8 @@ def test_probe_handles_realistic_service_discovery() -> None:
     result = probe.collect_initial_state()
 
     assert len(result.attribute_list_fragments) == 2
-    assert b"\x19\x11\x0D" in result.full_attribute_list  # A2DP
-    assert b"\x19\x11\x1F" in result.full_attribute_list  # HFP
+    assert b"\x19\x11\x0d" in result.full_attribute_list  # A2DP
+    assert b"\x19\x11\x1f" in result.full_attribute_list  # HFP
     assert len(result.continuation_states) == 1
     assert server.request_count == 2
 
