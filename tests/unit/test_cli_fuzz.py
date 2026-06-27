@@ -256,3 +256,120 @@ def test_fuzz_command_crash_stop_returns_code_2(
     )
     assert result.exit_code == 2
     assert "Session stopped due to crash detection" in result.stdout
+
+
+def test_fuzz_command_discovery_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    runner = CliRunner()
+    def fake_discover_and_select_target(index: int | None) -> Device:
+        raise RuntimeError("Bluetooth hardware not available")
+    monkeypatch.setattr("sdpfuzz2.cli._discover_and_select_target", fake_discover_and_select_target)
+    result = runner.invoke(app, ["fuzz", "--mode", "random-bytes"])
+    assert result.exit_code == 1
+    assert "Discovery failed: Bluetooth hardware not available" in result.stdout
+
+
+def test_fuzz_command_interactive_mode_abort(
+    monkeypatch: pytest.MonkeyPatch, mock_probe: None
+) -> None:
+    import typer
+    runner = CliRunner()
+    def fake_prompt(text: str, type: type) -> int:
+        raise typer.Abort()
+    monkeypatch.setattr("typer.prompt", fake_prompt)
+    result = runner.invoke(app, ["fuzz", "--target", "00:11:22:33:44:55"])
+    assert result.exit_code == 1
+
+
+def test_fuzz_command_interactive_mode_continuation_length(
+    mock_probe: None, mock_runner: None, tmp_path: Path
+) -> None:
+    runner = CliRunner()
+    log_file = tmp_path / "test_run.json"
+    result = runner.invoke(
+        app, ["fuzz", "--target", "00:11:22:33:44:55", "--output", str(log_file)], input="2\n"
+    )
+    assert result.exit_code == 0
+    assert "Fuzz Mode:          continuation-length" in result.stdout
+
+
+def test_fuzz_command_interactive_mode_continuation_bytes(
+    mock_probe: None, mock_runner: None, tmp_path: Path
+) -> None:
+    runner = CliRunner()
+    log_file = tmp_path / "test_run.json"
+    result = runner.invoke(
+        app, ["fuzz", "--target", "00:11:22:33:44:55", "--output", str(log_file)], input="3\n"
+    )
+    assert result.exit_code == 0
+    assert "Fuzz Mode:          continuation-bytes" in result.stdout
+
+
+def test_fuzz_command_interactive_mode_random_mutation(
+    mock_probe: None, mock_runner: None, tmp_path: Path
+) -> None:
+    runner = CliRunner()
+    log_file = tmp_path / "test_run.json"
+    result = runner.invoke(
+        app, ["fuzz", "--target", "00:11:22:33:44:55", "--output", str(log_file)], input="4\n"
+    )
+    assert result.exit_code == 0
+    assert "Fuzz Mode:          random-mutation" in result.stdout
+
+
+def test_fuzz_command_interactive_mode_invalid_choice(
+    mock_probe: None, mock_runner: None
+) -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        app, ["fuzz", "--target", "00:11:22:33:44:55"], input="5\n"
+    )
+    assert result.exit_code == 1
+    assert "Error: Invalid choice" in result.stdout
+
+
+def test_fuzz_command_probe_transport_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    from sdpfuzz2.domain.errors import TransportError
+    runner = CliRunner()
+    def fake_probe(target: Device, response_timeout_ms: int) -> ProbeResult:
+        raise TransportError("RFCOMM connection down")
+    monkeypatch.setattr("sdpfuzz2.cli._probe_selected_target", fake_probe)
+    result = runner.invoke(app, ["fuzz", "--mode", "random-bytes", "--target", "00:11:22:33:44:55"])
+    assert result.exit_code == 1
+    assert "Probe transport failed: RFCOMM connection down" in result.stdout
+
+
+def test_fuzz_command_runner_fails(
+    monkeypatch: pytest.MonkeyPatch, mock_probe: None
+) -> None:
+    runner = CliRunner()
+    async def fake_run_fuzzing_main(
+        runner: object, mode: str, target_mac: str, verbose: bool
+    ) -> None:
+        raise RuntimeError("Orchestration runner crashed")
+    monkeypatch.setattr("sdpfuzz2.cli.run_fuzzing_main", fake_run_fuzzing_main)
+    result = runner.invoke(app, ["fuzz", "--mode", "random-bytes", "--target", "00:11:22:33:44:55"])
+    assert result.exit_code == 1
+    assert "Fuzzing session encountered an error: Orchestration runner crashed" in result.stdout
+
+
+def test_run_fuzzing_main_display_loop_coverage() -> None:
+    import asyncio
+    from sdpfuzz2.cli import run_fuzzing_main
+    from sdpfuzz2.orchestration.session import RunStatistics, SessionState
+
+    class FakeRunner:
+        def __init__(self) -> None:
+            self.stats = RunStatistics()
+            self.state = SessionState.RUNNING
+
+        async def run(self) -> None:
+            await asyncio.sleep(0.3)
+            self.state = SessionState.STOPPED
+
+    async def run_test() -> None:
+        runner = FakeRunner()
+        await run_fuzzing_main(runner, "random-bytes", "00:11:22:33:44:55", verbose=False)
+
+    asyncio.run(run_test())
+
+

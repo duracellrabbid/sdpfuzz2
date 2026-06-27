@@ -536,3 +536,22 @@ def test_worker_pool_shutdown_not_started() -> None:
         await pool.shutdown()
 
     asyncio.run(run_test())
+
+
+def test_scheduler_in_flight_count() -> None:
+    async def run_test() -> None:
+        from sdpfuzz2.config import RuntimeConfig
+        from sdpfuzz2.orchestration.scheduler import WorkerScheduler
+
+        config = RuntimeConfig(concurrency=1, queue_size=10, response_timeout_ms=100)
+        scheduler = WorkerScheduler(
+            config=config,
+            transport_factory=FakeTransport,
+        )
+        assert scheduler.in_flight_count == 0
+        idx = await scheduler.submit(b"\x01")
+        assert scheduler.in_flight_count == 1
+        await scheduler.shutdown()
+
+    asyncio.run(run_test())
+

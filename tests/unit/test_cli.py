@@ -170,3 +170,15 @@ def test_probe_command_returns_non_zero_when_transport_fails(
 
     assert result.exit_code == 1
     assert "Probe transport failed: connect failed" in result.stdout
+
+
+def test_make_progress_table_zero_packets_sent() -> None:
+    from sdpfuzz2.cli import make_progress_table
+    from sdpfuzz2.orchestration.session import RunStatistics
+
+    stats = RunStatistics()
+    stats.packets_sent = 0
+    stats.packets_received = 0
+    table = make_progress_table(stats, "random-bytes", "00:11:22:33:44:55", "RUNNING")
+    assert table is not None
+

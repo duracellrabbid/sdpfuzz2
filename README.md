@@ -62,7 +62,7 @@ pytest
 Run unit checks with coverage and exclude integration tests:
 
 ```powershell
-pytest -m "not integration" --cov=src/sdpfuzz2 --cov-report=term-missing --cov-fail-under=90
+pytest -m "not integration" --cov=src/sdpfuzz2 --cov-report=term-missing --cov-fail-under=100
 ```
 
 Run integration tests without coverage enforcement:
@@ -100,47 +100,6 @@ Behavior:
 - A dependency vulnerability scan runs on both commit and push.
 - Commits/pushes are blocked on medium/high/critical findings.
 - Findings without severity metadata are not blocking.
-
-## Current status
-
-Phase 4 concurrent worker pool and scheduling are now implemented:
-- Bounded async `WorkerPool` managing concurrency and graceful shutdown under a configurable timeout.
-- Monotonic packet indexing in `WorkerScheduler` to correlate out-of-order responses with backpressure queue control.
-- `FuzzWorker` async task running blocking packet I/O in thread executors.
-- Support for inter-packet delays and token-bucket based rate limiting (`AsyncRateLimiter`).
-- Comprehensive unit and concurrency test suite with 98% overall test coverage.
-
-Phase 3 fuzzing strategy work is partially implemented:
-- `sdpfuzz2.fuzzing.random_bytes.TotallyRandomBytesStrategy` now generates random packets.
-- Packet length is constrained by configurable `min_length` and `max_length` bounds.
-- Deterministic generation is supported via a configurable `seed`.
-- Contract tests now verify byte output, length constraints, and seeded determinism.
-
-Additional implemented Phase 3 strategy work:
-- `ContinuationStateLengthMutationStrategy` now emits valid Service Search Attribute requests with intentionally oversized continuation-state length fields.
-- `ContinuationStateByteMutationStrategy` now mutates collected continuation-state bytes while preserving continuation-state length.
-- `RandomMutationStrategy` now mutates valid request templates (Service Search, Service Attribute, and Service Search Attribute).
-- Shared contract tests validate all implemented strategies for common behavior (byte output and seeded determinism) and mode-specific constraints.
-
-Phase 2 valid SDP probing is now implemented:
-- Valid Service Search Attribute request builder in `sdpfuzz2.sdp.packet_builder`
-- Strict Service Search Attribute response parser in `sdpfuzz2.sdp.parser`
-- Continuation-state pagination loop in `sdpfuzz2.bluetooth.probe.SDPProbe`
-- CLI integration via `sdpfuzz2 probe` for selected targets
-- Linux L2CAP transport implementation in `sdpfuzz2.bluetooth.l2cap_transport`
-- Unit tests covering byte fixtures, parser error cases, and multi-page continuation-state collection
-
-Phase 1 discovery and selection are in place:
-- Linux BlueZ discovery backend using dbus-next
-- Discovery normalization and filtering
-- CLI target selection flow
-- Unit tests for discovery and selection
-
-Earlier scaffolding is also in place:
-- src-layout package structure
-- quality tooling (ruff, mypy, pytest, coverage)
-- CI workflow scaffold
-- baseline domain and schema tests
 
 ## Developer notes
 

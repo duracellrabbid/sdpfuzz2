@@ -327,7 +327,7 @@ def fuzz_target(
         )
     elif mode == "random-mutation":
         strategy = RandomMutationStrategy(seed=seed)
-    else:
+    else:  # pragma: no cover
         raise typer.BadParameter(f"Unknown fuzzing mode: {mode}")
 
     # 6. Initialize RunLogger & Output Configuration
