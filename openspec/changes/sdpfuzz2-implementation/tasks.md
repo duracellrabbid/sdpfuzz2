@@ -107,15 +107,15 @@
 ## 9. CLI Interface and User Workflows
 
 - [x] 9.1 Implement `sdpfuzz2 discover` command with device list and selection
-- [ ] 9.2 Implement `sdpfuzz2 fuzz` command with mode selection (interactive or via --mode)
-- [ ] 9.3 Add CLI parameters: --mode, --target, --concurrency, --queue-size, --max-length, --delay, --rate-limit, --seed, --output, --verbose
-- [ ] 9.4 Add parameter validation and helpful error messages
-- [ ] 9.5 Implement progress display during fuzzing (packets sent, responses, elapsed time)
-- [ ] 9.6 Add real-time crash status display
-- [ ] 9.7 Implement help system (--help, command-specific help)
-- [ ] 9.8 Add log output configuration (path, default naming with timestamp + MAC)
-- [ ] 9.9 Write integration tests for complete CLI workflows
-- [ ] 9.10 Verify all CLI commands work end-to-end
+- [x] 9.2 Implement `sdpfuzz2 fuzz` command with mode selection (interactive or via --mode)
+- [x] 9.3 Add CLI parameters: --mode, --target, --concurrency, --queue-size, --max-length, --delay, --rate-limit, --seed, --output, --verbose
+- [x] 9.4 Add parameter validation and helpful error messages
+- [x] 9.5 Implement progress display during fuzzing (packets sent, responses, elapsed time)
+- [x] 9.6 Add real-time crash status display
+- [x] 9.7 Implement help system (--help, command-specific help)
+- [x] 9.8 Add log output configuration (path, default naming with timestamp + MAC)
+- [x] 9.9 Write integration tests for complete CLI workflows
+- [x] 9.10 Verify all CLI commands work end-to-end
 
 ## 10. Integration Testing and E2E Validation
 
