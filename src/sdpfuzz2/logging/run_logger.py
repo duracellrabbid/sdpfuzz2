@@ -32,9 +32,7 @@ class RunLogger:
         FuzzingSession._validate_mac_address(device_mac_address)
 
         if start_time is None:
-            self.start_time = (
-                datetime.datetime.now(datetime.UTC).isoformat().replace("+00:00", "Z")
-            )
+            self.start_time = datetime.datetime.now(datetime.UTC).isoformat().replace("+00:00", "Z")
         else:
             self.start_time = start_time
 
@@ -148,9 +146,7 @@ class RunLogger:
     def finalize(self) -> None:
         """Mark session end time and flush remaining logs."""
         with self._lock:
-            self.end_time = (
-                datetime.datetime.now(datetime.UTC).isoformat().replace("+00:00", "Z")
-            )
+            self.end_time = datetime.datetime.now(datetime.UTC).isoformat().replace("+00:00", "Z")
             self._flush_under_lock()
 
     @property

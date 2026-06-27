@@ -208,9 +208,7 @@ class FuzzRunner:
                 )
                 break
 
-    def _handle_response_error(
-        self, error: Exception, worker_id: int
-    ) -> CrashEvent | None:
+    def _handle_response_error(self, error: Exception, worker_id: int) -> CrashEvent | None:
         """Classify a transport error and forward to the crash detector."""
         err_str = str(error).lower()
         if "timed out" in err_str or "timeout" in err_str:

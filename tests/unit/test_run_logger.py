@@ -249,6 +249,7 @@ def test_run_logger_write_fuzzing_session_directly(tmp_path: Path) -> None:
 class DummyClass:
     def __init__(self) -> None:
         from typing import Any
+
         self.device_name = "Device"
         self.device_mac_address = "00:11:22:33:44:55"
         self.start_time = "2026-04-06 12:00:00 UTC"
