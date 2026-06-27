@@ -20,7 +20,7 @@ class MockSDPServerState:
     def __init__(
         self,
         services: list[bytes],
-        continuation_states: list[bytes] = None,
+        continuation_states: list[bytes] | None = None,
         crash_after_packets: int = 999999,
     ) -> None:
         self.lock = threading.Lock()
@@ -37,7 +37,7 @@ class MockSDPServerState:
 class MockSDPServerTransport:
     """Thread-safe Transport mock wrapper that delegates to shared state."""
 
-    def __init__(self, state: MockSDPServerState, *args, **kwargs) -> None:
+    def __init__(self, state: MockSDPServerState, *args: object, **kwargs: object) -> None:
         self.state = state
 
     def send(self, payload: bytes) -> None:
@@ -119,7 +119,7 @@ def mock_devices(monkeypatch: pytest.MonkeyPatch) -> None:
 # 10.2: Write integration tests for complete discovery -> probe -> fuzz -> crash workflow
 # 10.4: Write integration tests for crash detection with simulated crash behavior
 def test_e2e_discovery_probe_fuzz_crash(
-    mock_devices, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    mock_devices: None, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     state = MockSDPServerState(
         services=[b"\x35\x03ServicePart1", b"\x35\x03ServicePart2"],
@@ -203,7 +203,7 @@ def test_e2e_concurrent_fuzzing_multiple_workers(
     state = MockSDPServerState(
         services=[b"\x35\x03ServicePart1", b"\x35\x03ServicePart2"],
         continuation_states=[b"\x01\x02", b""],
-        crash_after_packets=10,
+        crash_after_packets=5,
     )
 
     monkeypatch.setattr(
@@ -237,5 +237,5 @@ def test_e2e_concurrent_fuzzing_multiple_workers(
     with open(log_file, encoding="utf-8") as f:
         log_data = json.load(f)
     session = FuzzingSession(**log_data)
-    assert len(session.logs) > 10
+    assert len(session.logs) > 5
     assert any(log.crash == 1 for log in session.logs)

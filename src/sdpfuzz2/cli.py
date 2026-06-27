@@ -18,6 +18,7 @@ from sdpfuzz2.bluetooth.probe import ProbeResult, SDPProbe
 from sdpfuzz2.config import RuntimeConfig
 from sdpfuzz2.domain.errors import TransportError
 from sdpfuzz2.domain.models import Device
+from sdpfuzz2.fuzzing.base import FuzzingStrategy
 from sdpfuzz2.fuzzing.cont_state_byte_mutation import ContinuationStateByteMutationStrategy
 from sdpfuzz2.fuzzing.cont_state_len_mutation import ContinuationStateLengthMutationStrategy
 from sdpfuzz2.fuzzing.random_bytes import TotallyRandomBytesStrategy
@@ -308,6 +309,7 @@ def fuzz_target(
     typer.echo("SDP probe completed successfully.")
 
     # 5. Initialize Strategy
+    strategy: FuzzingStrategy
     if mode == "random-bytes":
         strategy = TotallyRandomBytesStrategy(max_length=max_length, seed=seed)
     elif mode == "continuation-length":

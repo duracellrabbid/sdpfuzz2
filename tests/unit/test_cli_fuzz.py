@@ -22,29 +22,29 @@ def mock_probe(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.fixture
 def mock_runner(monkeypatch: pytest.MonkeyPatch) -> None:
-    async def fake_run(self) -> None:
-        self.state = SessionState.STOPPED
-        self.stats.packets_sent = 10
-        self.stats.packets_received = 9
-        self.stats.timeouts = 1
-        self.stats.errors = 0
-        self.stats.crashes_detected = 0
-        if self.run_logger:
-            self.run_logger.log_request(1, b"\x01")
-            self.run_logger.log_response(1, b"\x02", 0)
-            self.run_logger.finalize()
+    async def fake_run(self: object) -> None:
+        self.state = SessionState.STOPPED  # type: ignore[attr-defined]
+        self.stats.packets_sent = 10  # type: ignore[attr-defined]
+        self.stats.packets_received = 9  # type: ignore[attr-defined]
+        self.stats.timeouts = 1  # type: ignore[attr-defined]
+        self.stats.errors = 0  # type: ignore[attr-defined]
+        self.stats.crashes_detected = 0  # type: ignore[attr-defined]
+        if self.run_logger:  # type: ignore[attr-defined]
+            self.run_logger.log_request(1, b"\x01")  # type: ignore[attr-defined]
+            self.run_logger.log_response(1, b"\x02", 0)  # type: ignore[attr-defined]
+            self.run_logger.finalize()  # type: ignore[attr-defined]
 
     monkeypatch.setattr("sdpfuzz2.orchestration.runner.FuzzRunner.run", fake_run)
 
 
-def test_fuzz_command_invalid_mode(mock_probe, mock_runner) -> None:
+def test_fuzz_command_invalid_mode(mock_probe: None, mock_runner: None) -> None:
     runner = CliRunner()
     result = runner.invoke(app, ["fuzz", "--mode", "invalid-mode", "--target", "00:11:22:33:44:55"])
     assert result.exit_code != 0
     assert "Invalid fuzzing mode" in (result.stderr or "")
 
 
-def test_fuzz_command_invalid_concurrency(mock_probe, mock_runner) -> None:
+def test_fuzz_command_invalid_concurrency(mock_probe: None, mock_runner: None) -> None:
     runner = CliRunner()
     result = runner.invoke(
         app,
@@ -54,7 +54,7 @@ def test_fuzz_command_invalid_concurrency(mock_probe, mock_runner) -> None:
     assert "concurrency must be >= 1" in (result.stderr or "")
 
 
-def test_fuzz_command_invalid_queue_size(mock_probe, mock_runner) -> None:
+def test_fuzz_command_invalid_queue_size(mock_probe: None, mock_runner: None) -> None:
     runner = CliRunner()
     result = runner.invoke(
         app,
@@ -64,7 +64,7 @@ def test_fuzz_command_invalid_queue_size(mock_probe, mock_runner) -> None:
     assert "queue-size must be >= 1" in (result.stderr or "")
 
 
-def test_fuzz_command_invalid_max_length(mock_probe, mock_runner) -> None:
+def test_fuzz_command_invalid_max_length(mock_probe: None, mock_runner: None) -> None:
     runner = CliRunner()
     result = runner.invoke(
         app,
@@ -74,7 +74,7 @@ def test_fuzz_command_invalid_max_length(mock_probe, mock_runner) -> None:
     assert "max-length must be >= 16" in (result.stderr or "")
 
 
-def test_fuzz_command_invalid_delay(mock_probe, mock_runner) -> None:
+def test_fuzz_command_invalid_delay(mock_probe: None, mock_runner: None) -> None:
     runner = CliRunner()
     result = runner.invoke(
         app, ["fuzz", "--mode", "random-bytes", "--target", "00:11:22:33:44:55", "--delay", "-1.0"]
@@ -83,7 +83,7 @@ def test_fuzz_command_invalid_delay(mock_probe, mock_runner) -> None:
     assert "delay must be >= 0.0" in (result.stderr or "")
 
 
-def test_fuzz_command_invalid_rate_limit(mock_probe, mock_runner) -> None:
+def test_fuzz_command_invalid_rate_limit(mock_probe: None, mock_runner: None) -> None:
     runner = CliRunner()
     result = runner.invoke(
         app,
@@ -93,14 +93,14 @@ def test_fuzz_command_invalid_rate_limit(mock_probe, mock_runner) -> None:
     assert "rate-limit must be >= 0" in (result.stderr or "")
 
 
-def test_fuzz_command_invalid_target_mac(mock_probe, mock_runner) -> None:
+def test_fuzz_command_invalid_target_mac(mock_probe: None, mock_runner: None) -> None:
     runner = CliRunner()
     result = runner.invoke(app, ["fuzz", "--mode", "random-bytes", "--target", "invalid-mac"])
     assert result.exit_code != 0
     assert "Invalid MAC address" in (result.stderr or "")
 
 
-def test_fuzz_command_happy_path(mock_probe, mock_runner, tmp_path: Path) -> None:
+def test_fuzz_command_happy_path(mock_probe: None, mock_runner: None, tmp_path: Path) -> None:
     runner = CliRunner()
     log_file = tmp_path / "test_run.json"
     result = runner.invoke(
@@ -135,7 +135,9 @@ def test_fuzz_command_happy_path(mock_probe, mock_runner, tmp_path: Path) -> Non
     assert "Timeouts:           1" in result.stdout
 
 
-def test_fuzz_command_interactive_mode_selection(mock_probe, mock_runner, tmp_path: Path) -> None:
+def test_fuzz_command_interactive_mode_selection(
+    mock_probe: None, mock_runner: None, tmp_path: Path
+) -> None:
     runner = CliRunner()
     log_file = tmp_path / "test_run.json"
     result = runner.invoke(
@@ -148,7 +150,7 @@ def test_fuzz_command_interactive_mode_selection(mock_probe, mock_runner, tmp_pa
 
 
 def test_fuzz_command_interactive_device_discovery(
-    monkeypatch: pytest.MonkeyPatch, mock_probe, mock_runner, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch, mock_probe: None, mock_runner: None, tmp_path: Path
 ) -> None:
     runner = CliRunner()
     log_file = tmp_path / "test_run.json"
@@ -167,7 +169,7 @@ def test_fuzz_command_interactive_device_discovery(
 
 
 def test_fuzz_command_continuation_bytes_fails_when_no_states(
-    monkeypatch: pytest.MonkeyPatch, mock_runner
+    monkeypatch: pytest.MonkeyPatch, mock_runner: None
 ) -> None:
     runner = CliRunner()
 
@@ -186,7 +188,7 @@ def test_fuzz_command_continuation_bytes_fails_when_no_states(
     assert "Error: No continuation states collected" in result.stdout
 
 
-def test_fuzz_command_verbose_mode(mock_probe, mock_runner, tmp_path: Path) -> None:
+def test_fuzz_command_verbose_mode(mock_probe: None, mock_runner: None, tmp_path: Path) -> None:
     runner = CliRunner()
     log_file = tmp_path / "test_run_verbose.json"
     result = runner.invoke(
@@ -207,7 +209,7 @@ def test_fuzz_command_verbose_mode(mock_probe, mock_runner, tmp_path: Path) -> N
 
 
 def test_fuzz_command_default_output_path(
-    monkeypatch: pytest.MonkeyPatch, mock_probe, mock_runner, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch, mock_probe: None, mock_runner: None, tmp_path: Path
 ) -> None:
     runner = CliRunner()
     monkeypatch.setenv("SDPFUZZ2_LOG_DIR", str(tmp_path))
@@ -230,15 +232,15 @@ def test_fuzz_command_default_output_path(
 
 
 def test_fuzz_command_crash_stop_returns_code_2(
-    monkeypatch: pytest.MonkeyPatch, mock_probe
+    monkeypatch: pytest.MonkeyPatch, mock_probe: None
 ) -> None:
     runner = CliRunner()
 
-    async def fake_run_with_crash(self) -> None:
-        self.state = SessionState.STOPPED
-        self.stats.packets_sent = 5
-        self.stats.packets_received = 4
-        self.stats.crashes_detected = 1
+    async def fake_run_with_crash(self: object) -> None:
+        self.state = SessionState.STOPPED  # type: ignore[attr-defined]
+        self.stats.packets_sent = 5  # type: ignore[attr-defined]
+        self.stats.packets_received = 4  # type: ignore[attr-defined]
+        self.stats.crashes_detected = 1  # type: ignore[attr-defined]
 
     monkeypatch.setattr("sdpfuzz2.orchestration.runner.FuzzRunner.run", fake_run_with_crash)
 

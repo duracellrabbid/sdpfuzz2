@@ -143,16 +143,16 @@
 
 ## 12. Coverage and Quality Assurance
 
-- [ ] 12.1 Review coverage report and target 90%+ coverage across all modules
-- [ ] 12.2 Identify and justify any intentionally uncovered code (hardware-only paths)
+- [x] 12.1 Review coverage report and target 90%+ coverage across all modules
+- [x] 12.2 Identify and justify any intentionally uncovered code (hardware-only paths)
 - [x] 12.3 Enforce coverage gate in CI pipeline
-- [ ] 12.4 Run full test suite (unit, integration, property) and verify all pass
-- [ ] 12.5 Run linting (ruff) and formatting (black) with zero warnings
-- [ ] 12.6 Run type checking (mypy) with strict mode and zero errors
-- [ ] 12.7 Perform manual security review of Bluetooth socket handling
-- [ ] 12.8 Test CLI edge cases (invalid inputs, missing parameters, interruption)
-- [ ] 12.9 Verify project meets all MVP requirements
-- [ ] 12.10 Prepare release artifacts and final documentation
+- [x] 12.4 Run full test suite (unit, integration, property) and verify all pass
+- [x] 12.5 Run linting (ruff) and formatting (black) with zero warnings
+- [x] 12.6 Run type checking (mypy) with strict mode and zero errors
+- [x] 12.7 Perform manual security review of Bluetooth socket handling
+- [x] 12.8 Test CLI edge cases (invalid inputs, missing parameters, interruption)
+- [x] 12.9 Verify project meets all MVP requirements
+- [x] 12.10 Prepare release artifacts and final documentation
 
 ## 13. Post-MVP Roadmap (Future)
 
