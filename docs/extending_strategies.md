@@ -27,14 +27,14 @@ class UUIDMutationStrategy(FuzzingStrategy):
     def next_packet(self) -> bytes:
         # Generate a random 16-bit UUID around our target base
         mutated_uuid = self._target_uuid_base + self._rng.randint(0, 0xFF)
-        
+
         # Build request with custom transaction ID
         packet = build_service_search_attribute_request(
             transaction_id=self._tx_id,
             service_search_pattern=[mutated_uuid],
             continuation_state=b""
         )
-        
+
         # Increment transaction ID
         self._tx_id = 1 if self._tx_id >= 0xFFFF else self._tx_id + 1
         return packet
@@ -50,10 +50,10 @@ To expose your new strategy to the `sdpfuzz2 fuzz` command, follow these steps:
    ```python
    # Inside fuzz_target() parameter validation:
    valid_modes = [
-       "random-bytes", 
-       "continuation-length", 
-       "continuation-bytes", 
-       "random-mutation", 
+       "random-bytes",
+       "continuation-length",
+       "continuation-bytes",
+       "random-mutation",
        "uuid-mutation"  # Add your mode here
    ]
    ```
@@ -87,7 +87,7 @@ from sdpfuzz2.fuzzing.uuid_mutation import UUIDMutationStrategy
 def test_uuid_mutation_strategy_seeded_determinism() -> None:
     strategy1 = UUIDMutationStrategy(seed=42)
     strategy2 = UUIDMutationStrategy(seed=42)
-    
+
     # Assert sequences match exactly
     assert [strategy1.next_packet() for _ in range(10)] == [strategy2.next_packet() for _ in range(10)]
 ```

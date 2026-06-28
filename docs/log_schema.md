@@ -80,14 +80,14 @@ import sys
 def analyze_log(filepath: str):
     with open(filepath, "r", encoding="utf-8") as f:
         data = json.load(f)
-        
+
     print(f"--- Fuzz Run Analysis for {data['device_name']} ({data['device_mac_address']}) ---")
     print(f"Mode: {data['fuzz_mode']}")
     print(f"Packets Sent: {data['summary_counters']['packets_sent']}")
-    
+
     # Locate all packets that triggered a crash
     crash_packets = [log for log in data['logs'] if log['crash'] == 1]
-    
+
     if crash_packets:
         print(f"\n[!] Detected {len(crash_packets)} packets associated with crashes:")
         for log in crash_packets:

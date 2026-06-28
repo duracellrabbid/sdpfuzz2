@@ -19,7 +19,7 @@ The fuzzer currently runs in an ephemeral mode where any discovered crash or tim
 ## Decisions
 
 ### SQLite Index with Length-Prefixed Binary Files
-We considered storing everything in a single massive JSON file or SQLite BLOBs. 
+We considered storing everything in a single massive JSON file or SQLite BLOBs.
 - **Massive JSON**: Requires parsing and rewriting the entire database on every write/delete. Inefficient as the corpus grows.
 - **SQLite BLOBs**: Keeps database size extremely large and makes extraction of individual `.bin` files for standalone analysis difficult.
 - **Chosen Alternative**: A hybrid approach. SQLite stores metadata and metadata paths, and raw packet sequences are stored in `.bin` files. The `.bin` files use a custom `[PacketCount][Packet1Length][Packet1Payload]...` binary layout to preserve exact raw bytes and prevent unicode/hex conversion overhead.

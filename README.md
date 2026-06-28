@@ -133,7 +133,7 @@ from sdpfuzz2.orchestration.scheduler import WorkerScheduler
 
 async def main():
     config = RuntimeConfig(concurrency=4, queue_size=10, response_timeout_ms=1500)
-    
+
     # transport_factory should return an instance implementing the Transport protocol
     scheduler = WorkerScheduler(
         config=config,
@@ -141,18 +141,18 @@ async def main():
         delay_ms=50.0,   # 50ms delay between packets
         rate_limit=20,   # Max 20 packets per second
     )
-    
+
     # Spawn the workers and start the results processor
     await scheduler.start()
-    
+
     # Submit packet payload (blocks if input queue is full, providing backpressure)
     idx = await scheduler.submit(b"\x06\x00\x01\x00\x03\x00\x00\x00")
-    
+
     # Retrieve response (mapped by packet index, handling out-of-order arrival automatically)
     response = await scheduler.get_response(idx, timeout_seconds=5.0)
     print(f"Packet index: {response.packet_index}")
     print(f"Response: {response.response_payload}")
-    
+
     # Gracefully shut down workers
     await scheduler.shutdown()
 
