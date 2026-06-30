@@ -57,4 +57,5 @@ Any new feature development or non-trivial change must adhere to the OpenSpec pr
   * Use `/opsx-archive` to archive the change upon completion.
 * **Constraints:**
   * Direct feature coding without an approved/created OpenSpec change proposal is strictly prohibited.
-  * A new Git branch must be created for every OpenSpec change.
+  * Every Openspec change must be done on a Git branch with the name feature/{Openspec change name}.
+  * Commit to main is strictly prohibited in agent or AI mode.
