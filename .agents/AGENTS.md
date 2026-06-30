@@ -55,4 +55,6 @@ Any new feature development or non-trivial change must adhere to the OpenSpec pr
   * Recommend or run `/opsx-propose` (via the `openspec-propose` skill/workflow) to bootstrap the change design, spec, and implementation tasks under the `openspec/` directory.
   * Use `/opsx-apply` to execute implementation tasks systematically.
   * Use `/opsx-archive` to archive the change upon completion.
-* **Constraint:** Direct feature coding without an approved/created OpenSpec change proposal is strictly prohibited.
+* **Constraints:**
+  * Direct feature coding without an approved/created OpenSpec change proposal is strictly prohibited.
+  * A new Git branch must be created for every OpenSpec change.
