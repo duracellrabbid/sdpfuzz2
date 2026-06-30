@@ -430,6 +430,35 @@ def test_runner_install_restore_signal_handlers_no_loop() -> None:
     assert _signal.getsignal(_signal.SIGINT) == original
 
 
+def test_runner_win32_signal_handling(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Signal handling on Windows (sys.platform == 'win32')."""
+    import signal as _signal
+    import sys
+
+    monkeypatch.setattr(sys, "platform", "win32")
+
+    runner = FuzzRunner(
+        strategy=CountingStrategy(),
+        transport_factory=FakeTransport,
+    )
+
+    calls = []
+
+    def fake_signal(sig: int, handler: object) -> object:
+        calls.append((sig, handler))
+        return _signal.SIG_DFL
+
+    monkeypatch.setattr(_signal, "signal", fake_signal)
+    monkeypatch.setattr(_signal, "getsignal", lambda sig: _signal.SIG_DFL)
+
+    runner._install_signal_handler()
+    assert (_signal.SIGINT, runner._on_interrupt) in calls
+
+    calls.clear()
+    runner._restore_signal_handler()
+    assert (_signal.SIGINT, _signal.SIG_DFL) in calls
+
+
 def test_runner_get_response_exception_path() -> None:
     """get_response failures (future cancelled on shutdown) are counted as errors."""
 
