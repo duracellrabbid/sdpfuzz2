@@ -32,3 +32,6 @@ env/
 .vscode/
 project-requirement.md
 implementation-plan.md
+
+# Local fuzzing corpus
+corpus/

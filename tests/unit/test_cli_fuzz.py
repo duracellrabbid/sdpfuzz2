@@ -378,3 +378,21 @@ def test_run_fuzzing_main_display_loop_coverage() -> None:
         await run_fuzzing_main(runner, "random-bytes", "00:11:22:33:44:55", verbose=False)
 
     asyncio.run(run_test())
+
+
+def test_fuzz_command_invalid_sequence_length(mock_probe: None, mock_runner: None) -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "fuzz",
+            "--mode",
+            "random-bytes",
+            "--target",
+            "00:11:22:33:44:55",
+            "--sequence-length",
+            "0",
+        ],
+    )
+    assert result.exit_code != 0
+    assert "sequence-length must be >= 1" in (result.stderr or "")
