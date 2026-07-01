@@ -50,9 +50,13 @@ class CorpusManager:
     def _init_db(self) -> None:
         """Create the sequences table if it doesn't exist."""
         with sqlite3.connect(self.db_path) as conn:
+<<<<<<< HEAD
 
             conn.execute(
                 """
+=======
+            conn.execute("""
+>>>>>>> c52076b (Fixed some issues with formatting)
                 CREATE TABLE IF NOT EXISTS sequences (
                     id TEXT PRIMARY KEY,
                     classification TEXT NOT NULL,
@@ -62,9 +66,13 @@ class CorpusManager:
                     file_path TEXT NOT NULL,
                     metadata TEXT
                 )
+<<<<<<< HEAD
 
             """
             )
+=======
+            """)
+>>>>>>> c52076b (Fixed some issues with formatting)
 
     def save_sequence(
         self,
