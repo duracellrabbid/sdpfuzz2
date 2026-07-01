@@ -16,7 +16,7 @@ repos:
         additional_dependencies:
           - pip-audit>=2.7,<3.0
         pass_filenames: false
-        stages: [commit, push]
+        stages: [pre-commit, pre-push]
 
       - id: black
         name: black

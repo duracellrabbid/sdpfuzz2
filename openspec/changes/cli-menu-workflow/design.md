@@ -1,6 +1,6 @@
 ## Context
 
-SDPFuzz2 currently registers several subcommands via Typer (e.g., `discover`, `probe`, `fuzz`, `clean`, and the `corpus` app). To run a fuzzing session, users must run `discover` to find the target, `probe` to inspect its state, and then `fuzz` with multiple flags. This workflow requires running the tool multiple times and copying values (like MAC addresses). 
+SDPFuzz2 currently registers several subcommands via Typer (e.g., `discover`, `probe`, `fuzz`, `clean`, and the `corpus` app). To run a fuzzing session, users must run `discover` to find the target, `probe` to inspect its state, and then `fuzz` with multiple flags. This workflow requires running the tool multiple times and copying values (like MAC addresses).
 
 We will introduce an interactive main menu when running the `sdpfuzz2` command without any subcommand, combining discovery, probing, and fuzzing into a unified prompt flow.
 
@@ -21,7 +21,7 @@ We will introduce an interactive main menu when running the `sdpfuzz2` command w
 ### 1. Main Typer Callback
 - **Decision**: Implement a main callback `@app.callback(invoke_without_command=True)` on the root `app`.
 - **Rationale**: Allows the root command to intercept execution when no subcommand is specified, without altering the behavior of existing subcommands.
-- **Alternatives Considered**: 
+- **Alternatives Considered**:
   - Creating a separate `menu` subcommand: Rejected because running `sdpfuzz2` with no arguments is the standard UX pattern for interactive tools.
 
 ### 2. Interactive Flow Re-use
