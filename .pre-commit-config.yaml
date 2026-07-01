@@ -24,6 +24,7 @@ repos:
         language: system
         types: [python]
         require_serial: true
+        stages: [pre-commit]
 
       - id: mypy
         name: mypy
@@ -31,6 +32,7 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+        stages: [pre-commit]
 
       - id: pytest-coverage
         name: pytest-coverage
@@ -38,3 +40,4 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+        stages: [pre-commit]
