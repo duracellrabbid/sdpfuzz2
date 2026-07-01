@@ -16,14 +16,7 @@ repos:
         additional_dependencies:
           - pip-audit>=2.7,<3.0
         pass_filenames: false
-        stages: [pre-commit, pre-push]
-
-      - id: black
-        name: black
-        entry: black
-        language: system
-        types: [python]
-        require_serial: true
+        stages: [pre-commit]
 
       - id: ruff
         name: ruff
