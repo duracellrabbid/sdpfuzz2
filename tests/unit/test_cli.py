@@ -181,3 +181,361 @@ def test_make_progress_table_zero_packets_sent() -> None:
     stats.packets_received = 0
     table = make_progress_table(stats, "random-bytes", "00:11:22:33:44:55", "RUNNING")
     assert table is not None
+
+
+def test_main_menu_early_exit_if_subcommand_invoked() -> None:
+    runner = CliRunner()
+    result = runner.invoke(app, ["version"])
+    assert result.exit_code == 0
+    assert "=== SDPFuzz2 Main Menu ===" not in result.stdout
+
+
+def test_main_menu_exit_option() -> None:
+    runner = CliRunner()
+    result = runner.invoke(app, [], input="6\n")
+    assert result.exit_code == 0
+    assert "=== SDPFuzz2 Main Menu ===" in result.stdout
+    assert "Exiting." in result.stdout
+
+
+def test_main_menu_abort() -> None:
+    runner = CliRunner()
+    result = runner.invoke(app, [], input="")
+    assert result.exit_code == 0
+    assert "=== SDPFuzz2 Main Menu ===" in result.stdout
+
+
+def test_main_menu_invalid_choice() -> None:
+    runner = CliRunner()
+    result = runner.invoke(app, [], input="7\n6\n")
+    assert result.exit_code == 0
+    assert "Error: Invalid choice. Please choose a number between 1 and 6." in result.stdout
+
+
+def test_main_menu_standalone_discovery_found(monkeypatch: pytest.MonkeyPatch) -> None:
+    runner = CliRunner()
+
+    def fake_discover(self: object, *, include_unnamed: bool = False) -> list[Device]:
+        return [Device(name="Alpha", mac_address="00:11:22:33:44:55")]
+
+    monkeypatch.setattr("sdpfuzz2.cli.DiscoveryService.discover", fake_discover)
+    result = runner.invoke(app, [], input="3\n6\n")
+    assert result.exit_code == 0
+    assert "Alpha" in result.stdout
+    assert "00:11:22:33:44:55" in result.stdout
+
+
+def test_main_menu_standalone_discovery_not_found(monkeypatch: pytest.MonkeyPatch) -> None:
+    runner = CliRunner()
+
+    def fake_discover(self: object, *, include_unnamed: bool = False) -> list[Device]:
+        return []
+
+    monkeypatch.setattr("sdpfuzz2.cli.DiscoveryService.discover", fake_discover)
+    result = runner.invoke(app, [], input="3\n6\n")
+    assert result.exit_code == 0
+    assert "No discoverable named devices found" in result.stdout
+
+
+def test_main_menu_standalone_probing(monkeypatch: pytest.MonkeyPatch) -> None:
+    runner = CliRunner()
+
+    def fake_discover(self: object, *, include_unnamed: bool = False) -> list[Device]:
+        return [Device(name="Alpha", mac_address="00:11:22:33:44:55")]
+
+    def fake_probe(target: Device, response_timeout_ms: int) -> ProbeResult:
+        return ProbeResult(
+            attribute_list_fragments=[b"\x35\x02"],
+            continuation_states=[b"\x01\x02"],
+        )
+
+    monkeypatch.setattr("sdpfuzz2.cli.DiscoveryService.discover", fake_discover)
+    monkeypatch.setattr("sdpfuzz2.cli._probe_selected_target", fake_probe)
+    result = runner.invoke(app, [], input="4\n1\n6\n")
+    assert result.exit_code == 0
+    assert "Starting SDP probe for 00:11:22:33:44:55..." in result.stdout
+    assert "SDP probe completed" in result.stdout
+    assert "Attribute pages collected: 1" in result.stdout
+
+
+def test_main_menu_standalone_probing_exit_on_discovery_fail(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    runner = CliRunner()
+
+    def fake_discover(self: object, *, include_unnamed: bool = False) -> list[Device]:
+        return []
+
+    monkeypatch.setattr("sdpfuzz2.cli.DiscoveryService.discover", fake_discover)
+    result = runner.invoke(app, [], input="4\n6\n")
+    assert result.exit_code == 0
+    assert "No discoverable named devices found" in result.stdout
+
+
+def test_main_menu_standalone_probing_transport_fail(monkeypatch: pytest.MonkeyPatch) -> None:
+    runner = CliRunner()
+
+    def fake_discover(self: object, *, include_unnamed: bool = False) -> list[Device]:
+        return [Device(name="Alpha", mac_address="00:11:22:33:44:55")]
+
+    def fake_probe(target: Device, response_timeout_ms: int) -> ProbeResult:
+        raise TransportError("probe failed")
+
+    monkeypatch.setattr("sdpfuzz2.cli.DiscoveryService.discover", fake_discover)
+    monkeypatch.setattr("sdpfuzz2.cli._probe_selected_target", fake_probe)
+    result = runner.invoke(app, [], input="4\n1\n6\n")
+    assert result.exit_code == 0
+    assert "Probe transport failed: probe failed" in result.stdout
+
+
+def test_main_menu_cleanup_corpus(monkeypatch: pytest.MonkeyPatch) -> None:
+    runner = CliRunner()
+
+    def fake_clean(self: object) -> tuple[int, int]:
+        return 2, 3
+
+    monkeypatch.setattr("sdpfuzz2.cli.CorpusManager.clean_corpus", fake_clean)
+    result = runner.invoke(app, [], input="5\n6\n")
+    assert result.exit_code == 0
+    assert (
+        "Cleanup complete: 2 orphaned database records and 3 orphaned binary files removed."
+        in result.stdout
+    )
+
+
+def test_main_menu_corpus_management(monkeypatch: pytest.MonkeyPatch) -> None:
+    runner = CliRunner()
+    result = runner.invoke(app, [], input="2\n4\n6\n")
+    assert result.exit_code == 0
+    assert "=== SDPFuzz2 Corpus Management ===" in result.stdout
+    assert "Exiting." in result.stdout
+
+
+def test_main_menu_discover_and_fuzz(monkeypatch: pytest.MonkeyPatch) -> None:
+    from sdpfuzz2.orchestration.session import SessionState
+
+    runner = CliRunner()
+
+    def fake_discover(self: object, *, include_unnamed: bool = False) -> list[Device]:
+        return [Device(name="Alpha", mac_address="00:11:22:33:44:55")]
+
+    def fake_probe(target: Device, response_timeout_ms: int) -> ProbeResult:
+        return ProbeResult(
+            attribute_list_fragments=[b"\x35\x02"],
+            continuation_states=[b"\x01\x02"],
+        )
+
+    async def fake_run(self: object) -> None:
+        self.state = SessionState.STOPPED  # type: ignore[attr-defined]
+        self.stats.packets_sent = 5  # type: ignore[attr-defined]
+        self.stats.packets_received = 5  # type: ignore[attr-defined]
+        self.stats.crashes_detected = 0  # type: ignore[attr-defined]
+
+    monkeypatch.setattr("sdpfuzz2.cli.DiscoveryService.discover", fake_discover)
+    monkeypatch.setattr("sdpfuzz2.cli._probe_selected_target", fake_probe)
+    monkeypatch.setattr("sdpfuzz2.orchestration.runner.FuzzRunner.run", fake_run)
+
+    result = runner.invoke(app, [], input="1\n1\n1\n6\n")
+    assert result.exit_code == 0
+    assert "Performing initial SDP probe on target 00:11:22:33:44:55..." in result.stdout
+    assert "SDP probe completed successfully." in result.stdout
+    assert "Fuzz Mode:          random-bytes" in result.stdout
+    assert "Session completed successfully." in result.stdout
+
+
+def test_main_menu_discover_and_fuzz_exit_on_discovery_fail(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    runner = CliRunner()
+
+    def fake_discover(self: object, *, include_unnamed: bool = False) -> list[Device]:
+        return []
+
+    monkeypatch.setattr("sdpfuzz2.cli.DiscoveryService.discover", fake_discover)
+    result = runner.invoke(app, [], input="1\n6\n")
+    assert result.exit_code == 0
+    assert "No discoverable named devices found" in result.stdout
+
+
+def test_main_menu_discover_and_fuzz_abort_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    runner = CliRunner()
+
+    def fake_discover(self: object, *, include_unnamed: bool = False) -> list[Device]:
+        return [Device(name="Alpha", mac_address="00:11:22:33:44:55")]
+
+    monkeypatch.setattr("sdpfuzz2.cli.DiscoveryService.discover", fake_discover)
+    result = runner.invoke(app, [], input="1\n1\n")
+    assert result.exit_code == 0
+
+
+def test_main_menu_discover_and_fuzz_invalid_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    runner = CliRunner()
+
+    def fake_discover(self: object, *, include_unnamed: bool = False) -> list[Device]:
+        return [Device(name="Alpha", mac_address="00:11:22:33:44:55")]
+
+    monkeypatch.setattr("sdpfuzz2.cli.DiscoveryService.discover", fake_discover)
+    result = runner.invoke(app, [], input="1\n1\n5\n6\n")
+    assert result.exit_code == 0
+    assert "Error: Invalid choice. Please choose a number between 1 and 4." in result.stdout
+
+
+def test_main_menu_discover_and_fuzz_mode_length(monkeypatch: pytest.MonkeyPatch) -> None:
+    from sdpfuzz2.orchestration.session import SessionState
+
+    runner = CliRunner()
+
+    def fake_discover(self: object, *, include_unnamed: bool = False) -> list[Device]:
+        return [Device(name="Alpha", mac_address="00:11:22:33:44:55")]
+
+    def fake_probe(target: Device, response_timeout_ms: int) -> ProbeResult:
+        return ProbeResult(
+            attribute_list_fragments=[b"\x35\x02"],
+            continuation_states=[b"\x01\x02"],
+        )
+
+    async def fake_run(self: object) -> None:
+        self.state = SessionState.STOPPED  # type: ignore[attr-defined]
+        self.stats.crashes_detected = 0  # type: ignore[attr-defined]
+
+    monkeypatch.setattr("sdpfuzz2.cli.DiscoveryService.discover", fake_discover)
+    monkeypatch.setattr("sdpfuzz2.cli._probe_selected_target", fake_probe)
+    monkeypatch.setattr("sdpfuzz2.orchestration.runner.FuzzRunner.run", fake_run)
+
+    result = runner.invoke(app, [], input="1\n1\n2\n6\n")
+    assert result.exit_code == 0
+    assert "Fuzz Mode:          continuation-length" in result.stdout
+
+
+def test_main_menu_discover_and_fuzz_mode_bytes(monkeypatch: pytest.MonkeyPatch) -> None:
+    from sdpfuzz2.orchestration.session import SessionState
+
+    runner = CliRunner()
+
+    def fake_discover(self: object, *, include_unnamed: bool = False) -> list[Device]:
+        return [Device(name="Alpha", mac_address="00:11:22:33:44:55")]
+
+    def fake_probe(target: Device, response_timeout_ms: int) -> ProbeResult:
+        return ProbeResult(
+            attribute_list_fragments=[b"\x35\x02"],
+            continuation_states=[b"\x01\x02"],
+        )
+
+    async def fake_run(self: object) -> None:
+        self.state = SessionState.STOPPED  # type: ignore[attr-defined]
+        self.stats.crashes_detected = 0  # type: ignore[attr-defined]
+
+    monkeypatch.setattr("sdpfuzz2.cli.DiscoveryService.discover", fake_discover)
+    monkeypatch.setattr("sdpfuzz2.cli._probe_selected_target", fake_probe)
+    monkeypatch.setattr("sdpfuzz2.orchestration.runner.FuzzRunner.run", fake_run)
+
+    result = runner.invoke(app, [], input="1\n1\n3\n6\n")
+    assert result.exit_code == 0
+    assert "Fuzz Mode:          continuation-bytes" in result.stdout
+
+
+def test_main_menu_discover_and_fuzz_mode_bytes_no_states(monkeypatch: pytest.MonkeyPatch) -> None:
+    runner = CliRunner()
+
+    def fake_discover(self: object, *, include_unnamed: bool = False) -> list[Device]:
+        return [Device(name="Alpha", mac_address="00:11:22:33:44:55")]
+
+    def fake_probe(target: Device, response_timeout_ms: int) -> ProbeResult:
+        return ProbeResult(
+            attribute_list_fragments=[b"\x35\x02"],
+            continuation_states=[],
+        )
+
+    monkeypatch.setattr("sdpfuzz2.cli.DiscoveryService.discover", fake_discover)
+    monkeypatch.setattr("sdpfuzz2.cli._probe_selected_target", fake_probe)
+
+    result = runner.invoke(app, [], input="1\n1\n3\n6\n")
+    assert result.exit_code == 0
+    assert "Error: No continuation states collected from target device." in result.stdout
+
+
+def test_main_menu_discover_and_fuzz_mode_mutation(monkeypatch: pytest.MonkeyPatch) -> None:
+    from sdpfuzz2.orchestration.session import SessionState
+
+    runner = CliRunner()
+
+    def fake_discover(self: object, *, include_unnamed: bool = False) -> list[Device]:
+        return [Device(name="Alpha", mac_address="00:11:22:33:44:55")]
+
+    def fake_probe(target: Device, response_timeout_ms: int) -> ProbeResult:
+        return ProbeResult(
+            attribute_list_fragments=[b"\x35\x02"],
+            continuation_states=[b"\x01\x02"],
+        )
+
+    async def fake_run(self: object) -> None:
+        self.state = SessionState.STOPPED  # type: ignore[attr-defined]
+        self.stats.crashes_detected = 0  # type: ignore[attr-defined]
+
+    monkeypatch.setattr("sdpfuzz2.cli.DiscoveryService.discover", fake_discover)
+    monkeypatch.setattr("sdpfuzz2.cli._probe_selected_target", fake_probe)
+    monkeypatch.setattr("sdpfuzz2.orchestration.runner.FuzzRunner.run", fake_run)
+
+    result = runner.invoke(app, [], input="1\n1\n4\n6\n")
+    assert result.exit_code == 0
+    assert "Fuzz Mode:          random-mutation" in result.stdout
+
+
+def test_main_menu_discover_and_fuzz_crash_detected(monkeypatch: pytest.MonkeyPatch) -> None:
+    from sdpfuzz2.orchestration.session import SessionState
+
+    runner = CliRunner()
+
+    def fake_discover(self: object, *, include_unnamed: bool = False) -> list[Device]:
+        return [Device(name="Alpha", mac_address="00:11:22:33:44:55")]
+
+    def fake_probe(target: Device, response_timeout_ms: int) -> ProbeResult:
+        return ProbeResult(
+            attribute_list_fragments=[b"\x35\x02"],
+            continuation_states=[b"\x01\x02"],
+        )
+
+    async def fake_run(self: object) -> None:
+        self.state = SessionState.STOPPED  # type: ignore[attr-defined]
+        self.stats.crashes_detected = 1  # type: ignore[attr-defined]
+
+    monkeypatch.setattr("sdpfuzz2.cli.DiscoveryService.discover", fake_discover)
+    monkeypatch.setattr("sdpfuzz2.cli._probe_selected_target", fake_probe)
+    monkeypatch.setattr("sdpfuzz2.orchestration.runner.FuzzRunner.run", fake_run)
+
+    result = runner.invoke(app, [], input="1\n1\n1\n6\n")
+    assert result.exit_code == 0
+    assert "Session stopped due to crash detection." in result.stdout
+
+
+def test_main_menu_corpus_management_invalid_choice() -> None:
+    runner = CliRunner()
+    result = runner.invoke(app, [], input="2\n5\n4\n6\n")
+    assert result.exit_code == 0
+    assert "Error: Invalid choice. Please choose a number between 1 and 4." in result.stdout
+
+
+def test_main_menu_corpus_management_replay_invalid_seq() -> None:
+    runner = CliRunner()
+    result = runner.invoke(app, [], input="2\n2\nnonexistent\n\n1\nn\n4\n6\n")
+    assert result.exit_code == 0
+    assert "Sequence with ID 'nonexistent' not found." in result.stdout
+
+
+def test_main_menu_corpus_management_fuzz_empty_corpus() -> None:
+    runner = CliRunner()
+    result = runner.invoke(app, [], input="2\n3\n\n4\n6\n")
+    assert result.exit_code == 0
+    assert "Error: Corpus is empty. Cannot run corpus-mutation fuzzing." in result.stdout
+
+
+def test_main_menu_corpus_management_fuzz_abort() -> None:
+    runner = CliRunner()
+    result = runner.invoke(app, [], input="2\n3\n")
+    assert result.exit_code == 0
+
+
+def test_main_menu_corpus_management_replay_abort() -> None:
+    runner = CliRunner()
+    result = runner.invoke(app, [], input="2\n2\n")
+    assert result.exit_code == 0

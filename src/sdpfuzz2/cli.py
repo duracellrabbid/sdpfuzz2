@@ -223,96 +223,19 @@ def probe_target(
         _render_probe_debug(result)
 
 
-@app.command("fuzz")
-def fuzz_target(
-    mode: str | None = typer.Option(
-        None,
-        "--mode",
-        "-m",
-        help="Fuzzing mode: random-bytes, continuation-length, continuation-bytes, random-mutation",
-    ),
-    target: str | None = typer.Option(
-        None, "--target", "-t", help="Bluetooth MAC address of the target"
-    ),
-    concurrency: int = typer.Option(1, "--concurrency", "-c", help="Number of concurrent workers"),
-    queue_size: int = typer.Option(64, "--queue-size", help="Maximum queue size for scheduler"),
-    max_length: int = typer.Option(
-        64, "--max-length", help="Maximum packet length for random bytes strategy"
-    ),
-    delay: float = typer.Option(0.0, "--delay", help="Inter-packet delay in milliseconds"),
-    rate_limit: int = typer.Option(0, "--rate-limit", help="Packets per second limit"),
-    seed: int | None = typer.Option(None, "--seed", help="Random seed for reproducible fuzzing"),
-    output: str | None = typer.Option(None, "--output", "-o", help="Path to output JSON log file"),
-    sequence_length: int = typer.Option(
-        10, "--sequence-length", "-n", help="Sliding history buffer size for failure auto-save"
-    ),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output for diagnostics"),
+def _run_fuzz_session(
+    device: Device,
+    mode: str,
+    concurrency: int = 1,
+    queue_size: int = 64,
+    max_length: int = 64,
+    delay: float = 0.0,
+    rate_limit: int = 0,
+    seed: int | None = None,
+    output: str | None = None,
+    sequence_length: int = 10,
+    verbose: bool = False,
 ) -> None:
-    """Start an SDP fuzzing session against a target."""
-    # 1. Parameter Validation
-    valid_modes = ["random-bytes", "continuation-length", "continuation-bytes", "random-mutation"]
-    if mode is not None:
-        mode_lower = mode.lower()
-        if mode_lower not in valid_modes:
-            raise typer.BadParameter(
-                f"Invalid fuzzing mode '{mode}'. Available modes are: {', '.join(valid_modes)}"
-            )
-        mode = mode_lower
-
-    if concurrency < 1:
-        raise typer.BadParameter("concurrency must be >= 1")
-
-    if queue_size < 1:
-        raise typer.BadParameter("queue-size must be >= 1")
-
-    if max_length < 16:
-        raise typer.BadParameter("max-length must be >= 16")
-
-    if delay < 0.0:
-        raise typer.BadParameter("delay must be >= 0.0")
-
-    if rate_limit < 0:
-        raise typer.BadParameter("rate-limit must be >= 0")
-
-    if sequence_length < 1:
-        raise typer.BadParameter("sequence-length must be >= 1")
-
-    # 2. Target Device Selection
-    if target is None:
-        try:
-            device = _discover_and_select_target(index=None)
-        except Exception as exc:
-            typer.echo(f"Discovery failed: {exc}")
-            raise typer.Exit(code=1) from exc
-    else:
-        try:
-            device = Device(name="Target Device", mac_address=target)
-        except ValueError as exc:
-            raise typer.BadParameter(str(exc)) from exc
-
-    # 3. Interactive Mode Selection
-    if mode is None:
-        typer.echo("Available fuzzing modes:")
-        typer.echo("1. random-bytes")
-        typer.echo("2. continuation-length")
-        typer.echo("3. continuation-bytes")
-        typer.echo("4. random-mutation")
-        try:
-            choice = typer.prompt("Select fuzzing mode", type=int)
-        except typer.Abort as exc:
-            raise typer.Exit(code=1) from exc
-        if choice == 1:
-            mode = "random-bytes"
-        elif choice == 2:
-            mode = "continuation-length"
-        elif choice == 3:
-            mode = "continuation-bytes"
-        elif choice == 4:
-            mode = "random-mutation"
-        else:
-            typer.echo("Error: Invalid choice. Please choose a number between 1 and 4.")
-            raise typer.Exit(code=1)
-
     # 4. Perform SDP Probe
     typer.echo(f"Performing initial SDP probe on target {device.mac_address}...")
     try:
@@ -414,6 +337,204 @@ def fuzz_target(
         raise typer.Exit(code=2)
     else:
         typer.echo("Session completed successfully.")
+
+
+def _interactive_discover_and_fuzz() -> None:
+    """Run unified discover and fuzz target workflow."""
+    try:
+        device = _discover_and_select_target(index=None)
+    except typer.Exit:
+        return
+
+    typer.echo("Available fuzzing modes:")
+    typer.echo("1. random-bytes")
+    typer.echo("2. continuation-length")
+    typer.echo("3. continuation-bytes")
+    typer.echo("4. random-mutation")
+
+    try:
+        choice = typer.prompt("Select fuzzing mode", type=int)
+    except typer.Abort:
+        return
+
+    if choice == 1:
+        mode = "random-bytes"
+    elif choice == 2:
+        mode = "continuation-length"
+    elif choice == 3:
+        mode = "continuation-bytes"
+    elif choice == 4:
+        mode = "random-mutation"
+    else:
+        typer.echo("Error: Invalid choice. Please choose a number between 1 and 4.")
+        return
+
+    try:
+        _run_fuzz_session(device, mode)
+    except typer.Exit:
+        pass
+
+
+@app.callback(invoke_without_command=True)
+def main(ctx: typer.Context) -> None:
+    """Bluetooth SDP fuzzing toolkit interactive CLI."""
+    if ctx.invoked_subcommand is not None:
+        return
+
+    while True:
+        typer.echo("\n=== SDPFuzz2 Main Menu ===")
+        typer.echo("1. Discover & Fuzz Target")
+        typer.echo("2. Corpus Management")
+        typer.echo("3. Standalone Discovery")
+        typer.echo("4. Standalone Probing")
+        typer.echo("5. Cleanup Corpus")
+        typer.echo("6. Exit")
+
+        try:
+            choice = typer.prompt("Select choice", type=int)
+        except typer.Abort:
+            break
+
+        if choice == 1:
+            _interactive_discover_and_fuzz()
+        elif choice == 2:
+            corpus_main(ctx=ctx)
+        elif choice == 3:
+            devices = DiscoveryService().discover(include_unnamed=False)
+            if not devices:
+                typer.echo("No discoverable named devices found")
+            else:
+                _render_discovered_devices(devices)
+        elif choice == 4:
+            try:
+                target = _discover_and_select_target(index=None)
+                typer.echo(f"Starting SDP probe for {target.mac_address}...")
+                result = _probe_selected_target(target, response_timeout_ms=1500)
+                typer.echo("SDP probe completed")
+                typer.echo(f"Attribute pages collected: {len(result.attribute_list_fragments)}")
+                typer.echo(f"Continuation states collected: {len(result.continuation_states)}")
+                typer.echo(f"Combined attribute payload bytes: {len(result.full_attribute_list)}")
+            except typer.Exit:
+                pass
+            except TransportError as exc:
+                typer.echo(f"Probe transport failed: {exc}")
+        elif choice == 5:
+            manager = CorpusManager(base_dir="corpus")
+            deleted_records, deleted_files = manager.clean_corpus()
+            typer.echo(
+                f"Cleanup complete: {deleted_records} orphaned database records "
+                f"and {deleted_files} orphaned binary files removed."
+            )
+        elif choice == 6:
+            typer.echo("Exiting.")
+            break
+        else:
+            typer.echo("Error: Invalid choice. Please choose a number between 1 and 6.")
+
+
+@app.command("fuzz")
+def fuzz_target(
+    mode: str | None = typer.Option(
+        None,
+        "--mode",
+        "-m",
+        help="Fuzzing mode: random-bytes, continuation-length, continuation-bytes, random-mutation",
+    ),
+    target: str | None = typer.Option(
+        None, "--target", "-t", help="Bluetooth MAC address of the target"
+    ),
+    concurrency: int = typer.Option(1, "--concurrency", "-c", help="Number of concurrent workers"),
+    queue_size: int = typer.Option(64, "--queue-size", help="Maximum queue size for scheduler"),
+    max_length: int = typer.Option(
+        64, "--max-length", help="Maximum packet length for random bytes strategy"
+    ),
+    delay: float = typer.Option(0.0, "--delay", help="Inter-packet delay in milliseconds"),
+    rate_limit: int = typer.Option(0, "--rate-limit", help="Packets per second limit"),
+    seed: int | None = typer.Option(None, "--seed", help="Random seed for reproducible fuzzing"),
+    output: str | None = typer.Option(None, "--output", "-o", help="Path to output JSON log file"),
+    sequence_length: int = typer.Option(
+        10, "--sequence-length", "-n", help="Sliding history buffer size for failure auto-save"
+    ),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output for diagnostics"),
+) -> None:
+    """Start an SDP fuzzing session against a target."""
+    # 1. Parameter Validation
+    valid_modes = ["random-bytes", "continuation-length", "continuation-bytes", "random-mutation"]
+    if mode is not None:
+        mode_lower = mode.lower()
+        if mode_lower not in valid_modes:
+            raise typer.BadParameter(
+                f"Invalid fuzzing mode '{mode}'. Available modes are: {', '.join(valid_modes)}"
+            )
+        mode = mode_lower
+
+    if concurrency < 1:
+        raise typer.BadParameter("concurrency must be >= 1")
+
+    if queue_size < 1:
+        raise typer.BadParameter("queue-size must be >= 1")
+
+    if max_length < 16:
+        raise typer.BadParameter("max-length must be >= 16")
+
+    if delay < 0.0:
+        raise typer.BadParameter("delay must be >= 0.0")
+
+    if rate_limit < 0:
+        raise typer.BadParameter("rate-limit must be >= 0")
+
+    if sequence_length < 1:
+        raise typer.BadParameter("sequence-length must be >= 1")
+
+    # 2. Target Device Selection
+    if target is None:
+        try:
+            device = _discover_and_select_target(index=None)
+        except Exception as exc:
+            typer.echo(f"Discovery failed: {exc}")
+            raise typer.Exit(code=1) from exc
+    else:
+        try:
+            device = Device(name="Target Device", mac_address=target)
+        except ValueError as exc:
+            raise typer.BadParameter(str(exc)) from exc
+
+    # 3. Interactive Mode Selection
+    if mode is None:
+        typer.echo("Available fuzzing modes:")
+        typer.echo("1. random-bytes")
+        typer.echo("2. continuation-length")
+        typer.echo("3. continuation-bytes")
+        typer.echo("4. random-mutation")
+        try:
+            choice = typer.prompt("Select fuzzing mode", type=int)
+        except typer.Abort as exc:
+            raise typer.Exit(code=1) from exc
+        if choice == 1:
+            mode = "random-bytes"
+        elif choice == 2:
+            mode = "continuation-length"
+        elif choice == 3:
+            mode = "continuation-bytes"
+        elif choice == 4:
+            mode = "random-mutation"
+        else:
+            typer.echo("Error: Invalid choice. Please choose a number between 1 and 4.")
+            raise typer.Exit(code=1)
+
+    _run_fuzz_session(
+        device=device,
+        mode=mode,
+        concurrency=concurrency,
+        queue_size=queue_size,
+        max_length=max_length,
+        delay=delay,
+        rate_limit=rate_limit,
+        seed=seed,
+        output=output,
+        sequence_length=sequence_length,
+        verbose=verbose,
+    )
 
 
 @app.command("clean")
@@ -660,39 +781,53 @@ def corpus_main(
     if not isinstance(base_dir, str):
         base_dir = "corpus"
 
-    typer.echo("=== SDPFuzz2 Corpus Management ===")
-    typer.echo("1. List saved packet sequences")
-    typer.echo("2. Replay a sequence")
-    typer.echo("3. Run corpus-mutation fuzzing")
-    typer.echo("4. Exit")
+    while True:
+        typer.echo("\n=== SDPFuzz2 Corpus Management ===")
+        typer.echo("1. List saved packet sequences")
+        typer.echo("2. Replay a sequence")
+        typer.echo("3. Run corpus-mutation fuzzing")
+        typer.echo("4. Return to main menu")
 
-    try:
-        choice = typer.prompt("Select choice", type=int)
-    except typer.Abort:
-        return
+        try:
+            choice = typer.prompt("Select choice", type=int)
+        except typer.Abort:
+            break
 
-    if choice == 1:
-        corpus_list(base_dir=base_dir)
-    elif choice == 2:
-        seq_id = typer.prompt("Enter Sequence ID")
-        target = typer.prompt("Enter target MAC (leave blank for discovery)", default="")
-        target = target if target.strip() else None
+        if choice == 1:
+            corpus_list(base_dir=base_dir)
+        elif choice == 2:
+            try:
+                seq_id = typer.prompt("Enter Sequence ID")
+                target = typer.prompt("Enter target MAC (leave blank for discovery)", default="")
+                target = target if target.strip() else None
 
-        loop = typer.prompt("Enter loop iterations", default=1, type=int)
+                loop = typer.prompt("Enter loop iterations", default=1, type=int)
 
-        mutate = typer.prompt("Mutate on failure? (y/n)", default="n")
-        mutate_on_fail = mutate.lower().startswith("y")
+                mutate = typer.prompt("Mutate on failure? (y/n)", default="n")
+                mutate_on_fail = mutate.lower().startswith("y")
 
-        corpus_replay(
-            seq_id=seq_id,
-            target=target,
-            loop=loop,
-            mutate_on_fail=mutate_on_fail,
-            base_dir=base_dir,
-        )
-    elif choice == 3:
-        target = typer.prompt("Enter target MAC (leave blank for discovery)", default="")
-        target = target if target.strip() else None
-        corpus_fuzz(target=target, base_dir=base_dir)
-    elif choice == 4:
-        typer.echo("Exiting.")
+                corpus_replay(
+                    seq_id=seq_id,
+                    target=target,
+                    loop=loop,
+                    mutate_on_fail=mutate_on_fail,
+                    base_dir=base_dir,
+                )
+            except typer.Exit:
+                pass
+            except typer.Abort:
+                pass
+        elif choice == 3:
+            try:
+                target = typer.prompt("Enter target MAC (leave blank for discovery)", default="")
+                target = target if target.strip() else None
+                corpus_fuzz(target=target, base_dir=base_dir)
+            except typer.Exit:
+                pass
+            except typer.Abort:
+                pass
+        elif choice == 4:
+            typer.echo("Exiting.")
+            break
+        else:
+            typer.echo("Error: Invalid choice. Please choose a number between 1 and 4.")

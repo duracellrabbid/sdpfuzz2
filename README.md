@@ -23,7 +23,21 @@ Install the package in editable mode if you have not already done so:
 pip install -e .[dev]
 ```
 
-Run the CLI:
+Run the interactive CLI dashboard:
+
+```powershell
+sdpfuzz2
+```
+
+This launches the interactive main menu containing options for:
+1. **Discover & Fuzz Target**: Discover nearby Bluetooth devices, select one, automatically run an initial SDP probe, select a fuzzing mode, and start the fuzzing loop.
+2. **Corpus Management**: Open the corpus management submenu (list, replay, or run corpus-mutation fuzzing).
+3. **Standalone Discovery**: Scan and list named nearby Bluetooth devices.
+4. **Standalone Probing**: Select a target device and run a valid SDP state collection probe.
+5. **Cleanup Corpus**: Scan and remove orphaned database records and files.
+6. **Exit**: Exit the CLI.
+
+You can also bypass the menu and run subcommands directly:
 
 ```powershell
 sdpfuzz2 version
