@@ -719,3 +719,98 @@ def test_runner_with_logger(tmp_path: Path) -> None:
         assert parsed["logs"][3]["response_packet_hex"] == "02"
 
     asyncio.run(run_test())
+
+
+def test_runner_packet_history_sliding_window() -> None:
+    """Test that FuzzRunner keeps a sliding history of the last N packets sent."""
+    runner = FuzzRunner(
+        strategy=CountingStrategy(),
+        transport_factory=lambda: FakeTransport(),
+        sequence_length=3,
+    )
+    runner.packet_history.append(b"pkt1")
+    runner.packet_history.append(b"pkt2")
+    runner.packet_history.append(b"pkt3")
+    runner.packet_history.append(b"pkt4")
+
+    assert list(runner.packet_history) == [b"pkt2", b"pkt3", b"pkt4"]
+
+
+def test_runner_auto_save_hooks(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that FuzzRunner automatically registers crashes and timeouts in corpus."""
+    from sdpfuzz2.bluetooth.crash_detector import CrashConfidence, CrashEvent
+    from sdpfuzz2.logging import CorpusManager
+    from sdpfuzz2.orchestration.scheduler import FuzzResponse  # type: ignore[attr-defined]
+
+    async def run_test() -> None:
+        corpus = CorpusManager(tmp_path)
+        runner = FuzzRunner(
+            strategy=CountingStrategy(payload=b"fuzzpayload"),
+            transport_factory=lambda: FakeTransport(),
+            corpus_manager=corpus,
+            target_mac="aa:bb:cc:dd:ee:ff",
+            sequence_length=5,
+            config=FuzzRunnerConfig(
+                runtime_config=RuntimeConfig(concurrency=1),
+                max_packets=3,
+                max_errors=0,
+                stop_on_crash=True,
+            ),
+        )
+
+        class FailingScheduler:
+            def __init__(self) -> None:
+                self.in_flight_count = 0
+                self.count = 0
+
+            async def start(self) -> None:
+                pass
+
+            async def submit(self, payload: bytes) -> int:
+                self.count += 1
+                return self.count
+
+            async def get_response(self, index: int, timeout_seconds: float) -> FuzzResponse:
+                if index == 1:
+                    raise TimeoutError("connection timeout")
+                else:
+                    return FuzzResponse(
+                        packet_index=index,
+                        request_payload=b"fuzzpayload",
+                        response_payload=None,
+                        error=ConnectionResetError("reset by peer"),
+                        worker_id=1,
+                    )
+
+            async def shutdown(self, timeout_seconds: float = 5.0) -> None:
+                pass
+
+        runner._scheduler = FailingScheduler()  # type: ignore[assignment]
+        monkeypatch.setattr(
+            runner.crash_detector,
+            "record_timeout",
+            lambda w: CrashEvent(
+                confidence=CrashConfidence.MEDIUM, reason="timeout", worker_ids=[w]
+            ),
+        )
+        monkeypatch.setattr(
+            runner.crash_detector,
+            "record_connection_failure",
+            lambda w, t: CrashEvent(
+                confidence=CrashConfidence.HIGH, reason="reset", worker_ids=[w]
+            ),
+        )
+
+        await runner._loop()
+
+        seqs = corpus.list_sequences()
+        assert len(seqs) >= 2
+        classifications = [s["classification"] for s in seqs]
+        assert "timeout_candidate" in classifications
+        assert "crash_candidate" in classifications
+
+        for s in seqs:
+            assert s["target_mac"] == "aa:bb:cc:dd:ee:ff"
+            assert len(corpus.load_packets(s["id"])) > 0
+
+    asyncio.run(run_test())

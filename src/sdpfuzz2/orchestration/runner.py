@@ -12,6 +12,7 @@ from sdpfuzz2.bluetooth.crash_detector import CrashDetector, CrashEvent, ErrorTy
 from sdpfuzz2.bluetooth.transport import Transport
 from sdpfuzz2.config import RuntimeConfig
 from sdpfuzz2.fuzzing.base import FuzzingStrategy
+from sdpfuzz2.logging.corpus_manager import CorpusManager
 from sdpfuzz2.logging.run_logger import RunLogger
 from sdpfuzz2.orchestration.scheduler import WorkerScheduler
 from sdpfuzz2.orchestration.session import RunStatistics, SessionState
@@ -58,6 +59,9 @@ class FuzzRunner:
         config: FuzzRunnerConfig | None = None,
         delay_ms: float = 0.0,
         rate_limit: int = 0,
+        corpus_manager: CorpusManager | None = None,
+        target_mac: str = "00:00:00:00:00:00",
+        sequence_length: int = 10,
     ) -> None:
         self.strategy = strategy
         self.transport_factory = transport_factory
@@ -66,6 +70,12 @@ class FuzzRunner:
         self.config = config or FuzzRunnerConfig()
         self.delay_ms = delay_ms
         self.rate_limit = rate_limit
+        self.corpus_manager = corpus_manager
+        self.target_mac = target_mac
+
+        from collections import deque
+
+        self.packet_history: deque[bytes] = deque(maxlen=sequence_length)
 
         self.stats = RunStatistics()
         self.state: SessionState = SessionState.IDLE
@@ -127,6 +137,7 @@ class FuzzRunner:
                 break
 
             self.stats.packets_sent += 1
+            self.packet_history.append(payload)
 
             if self.run_logger:
                 self.run_logger.log_request(
@@ -152,6 +163,13 @@ class FuzzRunner:
                         crash=0,
                         worker_id=None,
                     )
+                if self.corpus_manager:
+                    self.corpus_manager.save_sequence(
+                        classification="timeout_candidate",
+                        target_mac=self.target_mac,
+                        packets=list(self.packet_history),
+                        metadata={"error": str(exc), "packet_index": packet_index},
+                    )
                 if self.config.max_errors > 0 and consecutive_errors >= self.config.max_errors:
                     logger.error(
                         "Max consecutive errors reached, stopping",
@@ -172,6 +190,18 @@ class FuzzRunner:
                         response_payload=None,
                         crash=is_crash,
                         worker_id=resp.worker_id,
+                    )
+                if is_crash and self.corpus_manager:
+                    self.corpus_manager.save_sequence(
+                        classification="crash_candidate",
+                        target_mac=self.target_mac,
+                        packets=list(self.packet_history),
+                        metadata={
+                            "error": str(resp.error),
+                            "packet_index": packet_index,
+                            "confidence": getattr(crash_event, "confidence", "unknown"),
+                            "reason": getattr(crash_event, "reason", "unknown"),
+                        },
                     )
                 if crash_event and self.config.stop_on_crash:
                     self.stats.crashes_detected += 1
